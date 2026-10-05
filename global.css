@@ -2,3 +2,65 @@
 @import "tailwindcss/preflight.css" layer(base);
 @import "tailwindcss/utilities.css";
 @import "nativewind/theme";
+
+/*
+ * Mindful Money Management design tokens.
+ * Palette from the MMM logo (see reference/MindfulMoneyManagement.jsx THEMES):
+ * paper-like light mode, near-black dark mode, gold / silver / bronze accents.
+ * Light values live in @theme; dark values override the same variables below.
+ */
+@theme {
+  /* Surfaces */
+  --color-background: #f7f4ec;
+  --color-card: #ffffff;
+  --color-surface: #fbf9f3;
+  --color-muted: #f0ece0;
+  --color-border: #ddd6c4;
+
+  /* Text */
+  --color-foreground: #1a1a20;
+  --color-muted-foreground: #726c5c;
+
+  /* Brand */
+  --color-primary: #a8791f;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #1668c9;
+  --color-accent-foreground: #ffffff;
+  --color-gold: #a8791f;
+  --color-silver: #7c7c86;
+  --color-bronze: #9a5a30;
+
+  /* Meaning */
+  --color-success: #0a9e6e;
+  --color-destructive: #d6284a;
+  --color-subscription: #7a3fd6;
+  --color-investment: #0a9891;
+  --color-info: #0678a0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0a0a10;
+    --color-card: #121218;
+    --color-surface: #17171f;
+    --color-muted: #1e1e28;
+    --color-border: #2a2a38;
+
+    --color-foreground: #f2ede0;
+    --color-muted-foreground: #8b8574;
+
+    --color-primary: #d4af37;
+    --color-primary-foreground: #0a0a10;
+    --color-accent: #4a9eff;
+    --color-accent-foreground: #0a0a10;
+    --color-gold: #d4af37;
+    --color-silver: #c4c4cc;
+    --color-bronze: #c17a4a;
+
+    --color-success: #00e8a0;
+    --color-destructive: #ff4d6a;
+    --color-subscription: #a06bff;
+    --color-investment: #00d4c8;
+    --color-info: #22d3ee;
+  }
+}
