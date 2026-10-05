@@ -65,19 +65,19 @@
   }
 }
 
-/* Bottom tab bar */
+/* Bottom tab bar (floating bar uses bg primary, see app/(tabs)/_layout.tsx) */
 @utility tabs-icon {
   @apply items-center justify-center;
 }
 @utility tabs-pill {
-  @apply items-center justify-center rounded-full px-5 py-1.5;
+  @apply size-12 items-center justify-center rounded-full;
 }
 @utility tabs-active {
-  @apply bg-primary/15;
+  @apply bg-primary-foreground/20;
 }
 @utility tabs-glyph {
-  @apply text-2xl text-muted-foreground;
+  @apply text-2xl text-primary-foreground/60;
 }
 @utility tabs-glyph-active {
-  @apply text-primary;
+  @apply text-primary-foreground;
 }
