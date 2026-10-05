@@ -64,3 +64,20 @@
     --color-info: #22d3ee;
   }
 }
+
+/* Bottom tab bar */
+@utility tabs-icon {
+  @apply items-center justify-center;
+}
+@utility tabs-pill {
+  @apply items-center justify-center rounded-full px-5 py-1.5;
+}
+@utility tabs-active {
+  @apply bg-primary/15;
+}
+@utility tabs-glyph {
+  @apply text-2xl text-muted-foreground;
+}
+@utility tabs-glyph-active {
+  @apply text-primary;
+}
