@@ -176,7 +176,7 @@
 
 /* Subscription card (vertical list) */
 @utility sub-card {
-  @apply mb-3 rounded-3xl border border-border p-4;
+  @apply rounded-3xl border border-border p-4;
 }
 @utility sub-head {
   @apply flex-row items-center justify-between gap-3;
