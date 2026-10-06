@@ -1,8 +1,8 @@
 import { clsx } from "clsx";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "@/components/icon";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatSubscriptionDateTime } from "@/lib/utils";
 
 export default function SubscriptionCard({
   name,
@@ -11,36 +11,80 @@ export default function SubscriptionCard({
   icon,
   billing,
   color,
+  category,
+  plan,
+  renewalDate,
+  paymentMethod,
+  expanded,
+  onPress,
 }: SubscriptionCardProps) {
+  // The custom color only shows while collapsed; expanded cards use the
+  // neutral theme surface so the details stay readable.
+  const colored = !!color && !expanded;
+
   return (
-    <View
-      className={clsx("sub-card", !color && "bg-card")}
-      style={color ? { backgroundColor: color } : undefined}
+    <Pressable
+      onPress={onPress}
+      className={clsx(
+        "sub-card",
+        expanded ? "sub-card-expanded" : !colored && "bg-card",
+      )}
+      style={colored ? { backgroundColor: color } : undefined}
     >
       <View className="sub-head">
         <View className="sub-main">
           <Icon
             name={icon}
-            className={clsx("sub-icon", color && "sub-on-color")}
+            className={clsx("sub-icon", colored && "sub-on-color")}
           />
           <View className="sub-copy">
             <Text
               numberOfLines={1}
-              className={clsx("sub-title", color && "sub-on-color")}
+              className={clsx("sub-title", colored && "sub-on-color")}
             >
               {name}
+            </Text>
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              className={clsx("sub-meta", colored && "sub-on-color-muted")}
+            >
+              {category?.trim() ||
+                plan?.trim() ||
+                (renewalDate ? formatSubscriptionDateTime(renewalDate) : "")}
             </Text>
           </View>
         </View>
         <View className="sub-price-box">
-          <Text className={clsx("sub-price", color && "sub-on-color")}>
+          <Text className={clsx("sub-price", colored && "sub-on-color")}>
             {formatCurrency(price, currency)}
           </Text>
-          <Text className={clsx("sub-billing", color && "sub-on-color-muted")}>
+          <Text
+            className={clsx("sub-billing", colored && "sub-on-color-muted")}
+          >
             {billing === "yearly" ? "Yearly" : "Monthly"}
           </Text>
         </View>
       </View>
-    </View>
+
+      {expanded && (
+        <View className="sub-body">
+          <View className="sub-details">
+            <View className="sub-row">
+              <View className="sub-row-copy">
+                <Text className="sub-label">Payment</Text>
+                <Text
+                  className="sub-value"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  {paymentMethod?.trim() || "Not provided"}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+    </Pressable>
   );
 }

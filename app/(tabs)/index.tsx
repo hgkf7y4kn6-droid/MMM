@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { useState } from "react";
 import { FlatList, Text, View } from "react-native";
 
 import { Icon } from "@/components/icon";
@@ -24,6 +25,10 @@ const initials = (name: string) =>
     .toUpperCase();
 
 export default function Index() {
+  const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
+    string | null
+  >(null);
+
   return (
     <SafeAreaView className="flex-1 bg-background p-5">
       <View className="home-header">
@@ -64,7 +69,17 @@ export default function Index() {
 
       <View>
         <ListHeading title="All Subscriptions" />
-        <SubscriptionCard {...homeSubscriptions[0]} />
+        <SubscriptionCard
+          {...homeSubscriptions[0]}
+          expanded={expandedSubscriptionId === homeSubscriptions[0].id}
+          onPress={() =>
+            setExpandedSubscriptionId((currentId) =>
+              currentId === homeSubscriptions[0].id
+                ? null
+                : homeSubscriptions[0].id,
+            )
+          }
+        />
       </View>
     </SafeAreaView>
   );

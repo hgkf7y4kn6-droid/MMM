@@ -34,7 +34,10 @@ declare global {
     color?: string;
   };
 
-  type SubscriptionCardProps = Subscription;
+  type SubscriptionCardProps = Subscription & {
+    expanded?: boolean;
+    onPress?: () => void;
+  };
 
   type UpcomingSubscription = {
     id: string;

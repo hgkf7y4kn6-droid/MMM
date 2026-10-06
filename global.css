@@ -193,6 +193,30 @@
 @utility sub-title {
   @apply font-sans-bold text-base text-foreground;
 }
+@utility sub-meta {
+  @apply mt-0.5 font-sans text-xs text-muted-foreground;
+}
+@utility sub-card-expanded {
+  @apply border-primary bg-surface;
+}
+@utility sub-body {
+  @apply mt-4 border-t border-border pt-3;
+}
+@utility sub-details {
+  @apply gap-3;
+}
+@utility sub-row {
+  @apply flex-row items-center justify-between;
+}
+@utility sub-row-copy {
+  @apply flex-1 flex-row items-center justify-between gap-4;
+}
+@utility sub-label {
+  @apply font-sans-medium text-xs text-muted-foreground;
+}
+@utility sub-value {
+  @apply flex-1 text-right font-sans-semibold text-sm text-foreground;
+}
 @utility sub-price-box {
   @apply items-end;
 }
