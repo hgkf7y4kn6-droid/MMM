@@ -135,3 +135,37 @@
 @utility home-balance-date {
   @apply font-sans-medium text-sm text-primary-foreground/80;
 }
+
+/* List section heading */
+@utility list-head {
+  @apply mb-3 mt-6 flex-row items-center justify-between;
+}
+@utility list-title {
+  @apply font-sans-bold text-xl text-foreground;
+}
+@utility list-action {
+  @apply rounded-full bg-muted px-3 py-1.5;
+}
+@utility list-action-text {
+  @apply font-sans-semibold text-xs text-muted-foreground;
+}
+
+/* Upcoming subscription card (horizontal list) */
+@utility upcoming-card {
+  @apply mr-3 w-40 rounded-3xl border border-border bg-card p-4;
+}
+@utility upcoming-row {
+  @apply flex-row items-center gap-3;
+}
+@utility upcoming-icon {
+  @apply text-3xl text-primary;
+}
+@utility upcoming-price {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility upcoming-meta {
+  @apply font-sans text-xs text-muted-foreground;
+}
+@utility upcoming-name {
+  @apply mt-3 font-sans-semibold text-sm text-foreground;
+}

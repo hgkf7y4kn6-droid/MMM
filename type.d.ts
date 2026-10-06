@@ -30,6 +30,19 @@ declare global {
     renewalDate: string;
   };
 
+  type UpcomingSubscription = {
+    id: string;
+    icon: IconName;
+    name: string;
+    price: number;
+    currency?: string;
+    daysLeft: number;
+  };
+
+  type ListHeadingProps = {
+    title: string;
+  };
+
   type HomeUser = {
     name: string;
   };

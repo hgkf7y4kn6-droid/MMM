@@ -1,9 +1,11 @@
 import dayjs from "dayjs";
-import { Text, View } from "react-native";
+import { FlatList, Text, View } from "react-native";
 
 import { Icon } from "@/components/icon";
+import ListHeading from "@/components/list-heading";
 import { SafeAreaView } from "@/components/safe-area-view";
-import { homeBalance, homeUser } from "@/constants/data";
+import UpcomingSubscriptionCard from "@/components/upcoming-subscription-card";
+import { homeBalance, homeUser, upcomingSubscriptions } from "@/constants/data";
 import { icons } from "@/constants/icons";
 import { formatCurrency } from "@/lib/utils";
 
@@ -35,9 +37,24 @@ export default function Index() {
             {formatCurrency(homeBalance.amount)}
           </Text>
           <Text className="home-balance-date">
-            Next: {dayjs(homeBalance.nextRenewalDate).format("MMM D")}
+            {dayjs(homeBalance.nextRenewalDate).format("MM/DD")}
           </Text>
         </View>
+      </View>
+
+      <View>
+        <ListHeading title="Upcoming" />
+        <FlatList
+          data={upcomingSubscriptions}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <UpcomingSubscriptionCard {...item} />}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+
+      <View>
+        <ListHeading title="All Subscriptions" />
       </View>
     </SafeAreaView>
   );

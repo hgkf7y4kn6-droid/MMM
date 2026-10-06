@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 import { icons } from "@/constants/icons";
 
 export const tabs = [
@@ -13,6 +15,9 @@ export const homeUser: HomeUser = {
   name: "Alex Morgan",
 };
 
+// Sample renewal dates are relative to today so the demo never goes stale.
+const inDays = (days: number) => dayjs().add(days, "day").format("YYYY-MM-DD");
+
 export const homeSubscriptions: Subscription[] = [
   {
     id: "spotify",
@@ -24,7 +29,7 @@ export const homeSubscriptions: Subscription[] = [
     status: "active",
     price: 16.99,
     billing: "monthly",
-    renewalDate: "2026-10-09",
+    renewalDate: inDays(3),
   },
   {
     id: "netflix",
@@ -36,7 +41,7 @@ export const homeSubscriptions: Subscription[] = [
     status: "active",
     price: 15.49,
     billing: "monthly",
-    renewalDate: "2026-10-12",
+    renewalDate: inDays(6),
   },
   {
     id: "icloud",
@@ -48,7 +53,7 @@ export const homeSubscriptions: Subscription[] = [
     status: "active",
     price: 2.99,
     billing: "monthly",
-    renewalDate: "2026-10-15",
+    renewalDate: inDays(9),
   },
   {
     id: "claude",
@@ -60,7 +65,7 @@ export const homeSubscriptions: Subscription[] = [
     status: "active",
     price: 20,
     billing: "monthly",
-    renewalDate: "2026-10-21",
+    renewalDate: inDays(15),
   },
   {
     id: "github",
@@ -72,7 +77,7 @@ export const homeSubscriptions: Subscription[] = [
     status: "active",
     price: 48,
     billing: "yearly",
-    renewalDate: "2027-02-03",
+    renewalDate: inDays(120),
   },
   {
     id: "gym",
@@ -83,20 +88,32 @@ export const homeSubscriptions: Subscription[] = [
     status: "paused",
     price: 39.99,
     billing: "monthly",
-    renewalDate: "2026-11-01",
+    renewalDate: inDays(26),
   },
 ];
 
-// Active subscriptions, soonest renewal first.
-export const upcomingSubscriptions: Subscription[] = homeSubscriptions
+// Active subscriptions renewing in the next 30 days, soonest first.
+export const upcomingSubscriptions: UpcomingSubscription[] = homeSubscriptions
   .filter((s) => s.status === "active")
-  .sort((a, b) => a.renewalDate.localeCompare(b.renewalDate))
-  .slice(0, 4);
+  .map((s) => ({
+    id: s.id,
+    icon: s.icon,
+    name: s.name,
+    price: s.price,
+    currency: s.currency,
+    daysLeft: dayjs(s.renewalDate).startOf("day").diff(dayjs().startOf("day"), "day"),
+  }))
+  .filter((s) => s.daysLeft >= 0 && s.daysLeft <= 30)
+  .sort((a, b) => a.daysLeft - b.daysLeft);
 
 // Monthly-equivalent total of active subscriptions.
 export const homeBalance: HomeBalance = {
   amount: homeSubscriptions
     .filter((s) => s.status === "active")
     .reduce((sum, s) => sum + (s.billing === "yearly" ? s.price / 12 : s.price), 0),
-  nextRenewalDate: upcomingSubscriptions[0]?.renewalDate ?? "",
+  nextRenewalDate:
+    homeSubscriptions
+      .filter((s) => s.status === "active")
+      .map((s) => s.renewalDate)
+      .sort()[0] ?? "",
 };
