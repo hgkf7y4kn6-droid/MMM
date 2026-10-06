@@ -50,6 +50,8 @@ declare global {
 
   type ListHeadingProps = {
     title: string;
+    /** Called by the "View all" button; the button is hidden without it. */
+    onPress?: () => void;
   };
 
   type HomeUser = {

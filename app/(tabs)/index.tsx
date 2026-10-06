@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { router } from "expo-router";
 import { useState } from "react";
 import { FlatList, Text, View } from "react-native";
 
@@ -79,7 +80,10 @@ export default function Index() {
             </View>
 
             <View className="mb-5">
-              <ListHeading title="Upcoming" />
+              <ListHeading
+                title="Upcoming"
+                onPress={() => router.push("/subscriptions")}
+              />
               <FlatList
                 data={upcomingSubscriptions}
                 keyExtractor={(item) => item.id}
@@ -96,7 +100,10 @@ export default function Index() {
               />
             </View>
 
-            <ListHeading title="All Subscriptions" />
+            <ListHeading
+              title="All Subscriptions"
+              onPress={() => router.push("/subscriptions")}
+            />
           </>
         }
       />

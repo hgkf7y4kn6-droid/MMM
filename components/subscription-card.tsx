@@ -96,7 +96,7 @@ export default function SubscriptionCard({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {category?.trim() || plan?.trim() || ""}
+                  {category?.trim() || plan?.trim() || "Not provided"}
                 </Text>
               </View>
             </View>
@@ -108,7 +108,7 @@ export default function SubscriptionCard({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {startDate ? formatSubscriptionDateTime(startDate) : ""}
+                  {formatSubscriptionDateTime(startDate)}
                 </Text>
               </View>
             </View>
@@ -120,7 +120,7 @@ export default function SubscriptionCard({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {renewalDate ? formatSubscriptionDateTime(renewalDate) : ""}
+                  {formatSubscriptionDateTime(renewalDate)}
                 </Text>
               </View>
             </View>
@@ -132,7 +132,7 @@ export default function SubscriptionCard({
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
-                  {status ? formatStatusLabel(status) : ""}
+                  {formatStatusLabel(status)}
                 </Text>
               </View>
             </View>
