@@ -9,4 +9,12 @@ export const icons = {
   wallet: "wallet",
   activity: "pulse",
   setting: "settings",
+  add: "add-circle",
+  music: "musical-notes",
+  film: "film",
+  cloud: "cloud",
+  code: "code-slash",
+  fitness: "barbell",
+  news: "newspaper",
+  ai: "sparkles",
 } as const satisfies Record<string, IconName>;

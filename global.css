@@ -100,3 +100,38 @@
 @utility tabs-glyph-active {
   @apply text-primary-foreground;
 }
+
+/* Home screen */
+@utility home-header {
+  @apply mb-2.5 flex-row items-center justify-between;
+}
+@utility home-user {
+  @apply flex-row items-center gap-3;
+}
+@utility home-avatar {
+  @apply size-12 items-center justify-center rounded-full bg-primary;
+}
+@utility home-avatar-text {
+  @apply font-sans-bold text-lg text-primary-foreground;
+}
+@utility home-user-name {
+  @apply font-sans-bold text-lg text-foreground;
+}
+@utility home-add-icon {
+  @apply text-4xl text-primary;
+}
+@utility home-balance-card {
+  @apply mt-4 rounded-3xl bg-primary p-5;
+}
+@utility home-balance-label {
+  @apply font-sans-medium text-sm text-primary-foreground/80;
+}
+@utility home-balance-row {
+  @apply mt-2 flex-row items-end justify-between;
+}
+@utility home-balance-amount {
+  @apply font-sans-extrabold text-4xl text-primary-foreground;
+}
+@utility home-balance-date {
+  @apply font-sans-medium text-sm text-primary-foreground/80;
+}
