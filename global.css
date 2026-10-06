@@ -169,3 +169,43 @@
 @utility upcoming-name {
   @apply mt-3 font-sans-semibold text-sm text-foreground;
 }
+
+@utility home-empty-state {
+  @apply py-4 font-sans text-sm text-muted-foreground;
+}
+
+/* Subscription card (vertical list) */
+@utility sub-card {
+  @apply mb-3 rounded-3xl border border-border p-4;
+}
+@utility sub-head {
+  @apply flex-row items-center justify-between gap-3;
+}
+@utility sub-main {
+  @apply flex-1 flex-row items-center gap-3;
+}
+@utility sub-icon {
+  @apply text-3xl text-primary;
+}
+@utility sub-copy {
+  @apply flex-1;
+}
+@utility sub-title {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility sub-price-box {
+  @apply items-end;
+}
+@utility sub-price {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility sub-billing {
+  @apply font-sans text-xs text-muted-foreground;
+}
+/* Text/icon color on the fixed pastel card colors (same in light and dark) */
+@utility sub-on-color {
+  @apply text-[#1a1a20];
+}
+@utility sub-on-color-muted {
+  @apply text-[#1a1a20]/60;
+}

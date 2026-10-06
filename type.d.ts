@@ -26,9 +26,15 @@ declare global {
     price: number;
     currency?: string;
     billing: BillingCycle;
+    /** ISO date (YYYY-MM-DD) the subscription started */
+    startDate?: string;
     /** ISO date (YYYY-MM-DD) of the next charge */
     renewalDate: string;
+    /** Card background color when collapsed */
+    color?: string;
   };
+
+  type SubscriptionCardProps = Subscription;
 
   type UpcomingSubscription = {
     id: string;

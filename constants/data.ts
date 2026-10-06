@@ -30,6 +30,8 @@ export const homeSubscriptions: Subscription[] = [
     price: 16.99,
     billing: "monthly",
     renewalDate: inDays(3),
+    startDate: inDays(-420),
+    color: "#c8f0d4",
   },
   {
     id: "netflix",
@@ -42,6 +44,8 @@ export const homeSubscriptions: Subscription[] = [
     price: 15.49,
     billing: "monthly",
     renewalDate: inDays(6),
+    startDate: inDays(-900),
+    color: "#ffd6d6",
   },
   {
     id: "icloud",
@@ -54,6 +58,8 @@ export const homeSubscriptions: Subscription[] = [
     price: 2.99,
     billing: "monthly",
     renewalDate: inDays(9),
+    startDate: inDays(-1500),
+    color: "#d6e8ff",
   },
   {
     id: "claude",
@@ -66,6 +72,8 @@ export const homeSubscriptions: Subscription[] = [
     price: 20,
     billing: "monthly",
     renewalDate: inDays(15),
+    startDate: inDays(-200),
+    color: "#f5dcc8",
   },
   {
     id: "github",
@@ -78,6 +86,8 @@ export const homeSubscriptions: Subscription[] = [
     price: 48,
     billing: "yearly",
     renewalDate: inDays(120),
+    startDate: inDays(-610),
+    color: "#e2dcf5",
   },
   {
     id: "gym",
@@ -89,6 +99,8 @@ export const homeSubscriptions: Subscription[] = [
     price: 39.99,
     billing: "monthly",
     renewalDate: inDays(26),
+    startDate: inDays(-75),
+    color: "#fdf0c4",
   },
 ];
 

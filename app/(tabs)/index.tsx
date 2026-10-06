@@ -4,8 +4,14 @@ import { FlatList, Text, View } from "react-native";
 import { Icon } from "@/components/icon";
 import ListHeading from "@/components/list-heading";
 import { SafeAreaView } from "@/components/safe-area-view";
+import SubscriptionCard from "@/components/subscription-card";
 import UpcomingSubscriptionCard from "@/components/upcoming-subscription-card";
-import { homeBalance, homeUser, upcomingSubscriptions } from "@/constants/data";
+import {
+  homeBalance,
+  homeSubscriptions,
+  homeUser,
+  upcomingSubscriptions,
+} from "@/constants/data";
 import { icons } from "@/constants/icons";
 import { formatCurrency } from "@/lib/utils";
 
@@ -50,11 +56,15 @@ export default function Index() {
           renderItem={({ item }) => <UpcomingSubscriptionCard {...item} />}
           horizontal
           showsHorizontalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text className="home-empty-state">No upcoming renewals yet.</Text>
+          }
         />
       </View>
 
       <View>
         <ListHeading title="All Subscriptions" />
+        <SubscriptionCard {...homeSubscriptions[0]} />
       </View>
     </SafeAreaView>
   );
