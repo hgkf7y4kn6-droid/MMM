@@ -2,7 +2,8 @@ import dayjs from "dayjs";
 
 /**
  * Format a number as money, e.g. 1234.5 -> "$1,234.50".
- * Falls back to a plain "$" + two decimals if the currency code is invalid.
+ * Falls back to "1234.50 XYZ" (amount + the given code) if the currency code
+ * is invalid.
  */
 export function formatCurrency(value: number, currency = "USD"): string {
   try {
@@ -13,7 +14,7 @@ export function formatCurrency(value: number, currency = "USD"): string {
       maximumFractionDigits: 2,
     }).format(value);
   } catch {
-    return `$${value.toFixed(2)}`;
+    return `${value.toFixed(2)} ${currency}`;
   }
 }
 
