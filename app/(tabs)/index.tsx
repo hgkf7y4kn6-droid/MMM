@@ -69,16 +69,20 @@ export default function Index() {
 
       <View>
         <ListHeading title="All Subscriptions" />
-        <SubscriptionCard
-          {...homeSubscriptions[0]}
-          expanded={expandedSubscriptionId === homeSubscriptions[0].id}
-          onPress={() =>
-            setExpandedSubscriptionId((currentId) =>
-              currentId === homeSubscriptions[0].id
-                ? null
-                : homeSubscriptions[0].id,
-            )
-          }
+        <FlatList
+          data={homeSubscriptions}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <SubscriptionCard
+              {...item}
+              expanded={expandedSubscriptionId === item.id}
+              onPress={() =>
+                setExpandedSubscriptionId((currentId) =>
+                  currentId === item.id ? null : item.id,
+                )
+              }
+            />
+          )}
         />
       </View>
     </SafeAreaView>
