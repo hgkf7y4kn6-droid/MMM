@@ -1,22 +1,13 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { clsx } from "clsx";
 import { Tabs } from "expo-router";
-import { styled } from "nativewind";
 import { useColorScheme, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/icon";
 import { tabs } from "@/constants/data";
-import type { IconName } from "@/constants/icons";
 import { colors, components } from "@/constants/theme";
 
-const Icon = styled(Ionicons);
-
 const tabBar = components.tabBar;
-
-type TabIconProps = {
-  focused: boolean;
-  icon: IconName;
-};
 
 const TabIcon = ({ focused, icon }: TabIconProps) => {
   return (

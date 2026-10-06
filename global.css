@@ -36,6 +36,25 @@
   --color-subscription: #7a3fd6;
   --color-investment: #0a9891;
   --color-info: #0678a0;
+
+  /* Fonts: names match the keys passed to useFonts in app/_layout.tsx */
+  --font-sans: "sans-regular";
+  --font-sans-light: "sans-light";
+  --font-sans-medium: "sans-medium";
+  --font-sans-semibold: "sans-semibold";
+  --font-sans-bold: "sans-bold";
+  --font-sans-extrabold: "sans-extrabold";
+}
+
+/* nativewind/theme sets --font-sans to the system font per platform;
+   point it at Plus Jakarta Sans on every platform instead. */
+:root {
+  @media ios {
+    --font-sans: "sans-regular";
+  }
+  @media android {
+    --font-sans: "sans-regular";
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -80,4 +99,137 @@
 }
 @utility tabs-glyph-active {
   @apply text-primary-foreground;
+}
+
+/* Home screen */
+@utility home-header {
+  @apply mb-2.5 flex-row items-center justify-between;
+}
+@utility home-user {
+  @apply flex-row items-center gap-3;
+}
+@utility home-avatar {
+  @apply size-12 items-center justify-center rounded-full bg-primary;
+}
+@utility home-avatar-text {
+  @apply font-sans-bold text-lg text-primary-foreground;
+}
+@utility home-user-name {
+  @apply font-sans-bold text-lg text-foreground;
+}
+@utility home-add-icon {
+  @apply text-4xl text-primary;
+}
+@utility home-balance-card {
+  @apply mt-4 rounded-3xl bg-primary p-5;
+}
+@utility home-balance-label {
+  @apply font-sans-medium text-sm text-primary-foreground/80;
+}
+@utility home-balance-row {
+  @apply mt-2 flex-row items-end justify-between;
+}
+@utility home-balance-amount {
+  @apply font-sans-extrabold text-4xl text-primary-foreground;
+}
+@utility home-balance-date {
+  @apply font-sans-medium text-sm text-primary-foreground/80;
+}
+
+/* List section heading */
+@utility list-head {
+  @apply mb-3 mt-6 flex-row items-center justify-between;
+}
+@utility list-title {
+  @apply font-sans-bold text-xl text-foreground;
+}
+@utility list-action {
+  @apply rounded-full bg-muted px-3 py-1.5;
+}
+@utility list-action-text {
+  @apply font-sans-semibold text-xs text-muted-foreground;
+}
+
+/* Upcoming subscription card (horizontal list) */
+@utility upcoming-card {
+  @apply mr-3 w-40 rounded-3xl border border-border bg-card p-4;
+}
+@utility upcoming-row {
+  @apply flex-row items-center gap-3;
+}
+@utility upcoming-icon {
+  @apply text-3xl text-primary;
+}
+@utility upcoming-price {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility upcoming-meta {
+  @apply font-sans text-xs text-muted-foreground;
+}
+@utility upcoming-name {
+  @apply mt-3 font-sans-semibold text-sm text-foreground;
+}
+
+@utility home-empty-state {
+  @apply py-4 font-sans text-sm text-muted-foreground;
+}
+
+/* Subscription card (vertical list) */
+@utility sub-card {
+  @apply rounded-3xl border border-border p-4;
+}
+@utility sub-head {
+  @apply flex-row items-center justify-between gap-3;
+}
+@utility sub-main {
+  @apply flex-1 flex-row items-center gap-3;
+}
+@utility sub-icon {
+  @apply text-3xl text-primary;
+}
+@utility sub-copy {
+  @apply flex-1;
+}
+@utility sub-title {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility sub-meta {
+  @apply mt-0.5 font-sans text-xs text-muted-foreground;
+}
+@utility sub-card-expanded {
+  @apply border-primary bg-surface;
+}
+@utility sub-body {
+  @apply mt-4 border-t border-border pt-3;
+}
+@utility sub-details {
+  @apply gap-3;
+}
+@utility sub-row {
+  @apply flex-row items-center justify-between;
+}
+@utility sub-row-copy {
+  @apply flex-1 flex-row items-center justify-between gap-4;
+}
+@utility sub-label {
+  @apply font-sans-medium text-xs text-muted-foreground;
+}
+@utility sub-value {
+  @apply flex-1 text-right font-sans-semibold text-sm text-foreground;
+}
+@utility sub-price-box {
+  @apply items-end;
+}
+@utility sub-price {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility sub-billing {
+  @apply font-sans text-xs text-muted-foreground;
+}
+/* Text/icon color on the fixed pastel card colors (same in light and dark) */
+@utility sub-on-color {
+  @apply text-[#1a1a20];
+}
+@utility sub-on-color-muted {
+  @apply text-[#1a1a20]/60;
 }
