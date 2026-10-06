@@ -36,6 +36,25 @@
   --color-subscription: #7a3fd6;
   --color-investment: #0a9891;
   --color-info: #0678a0;
+
+  /* Fonts: names match the keys passed to useFonts in app/_layout.tsx */
+  --font-sans: "sans-regular";
+  --font-sans-light: "sans-light";
+  --font-sans-medium: "sans-medium";
+  --font-sans-semibold: "sans-semibold";
+  --font-sans-bold: "sans-bold";
+  --font-sans-extrabold: "sans-extrabold";
+}
+
+/* nativewind/theme sets --font-sans to the system font per platform;
+   point it at Plus Jakarta Sans on every platform instead. */
+:root {
+  @media ios {
+    --font-sans: "sans-regular";
+  }
+  @media android {
+    --font-sans: "sans-regular";
+  }
 }
 
 @media (prefers-color-scheme: dark) {
