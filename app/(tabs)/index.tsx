@@ -1,3 +1,4 @@
+import { useUser } from "@clerk/clerk-expo";
 import dayjs from "dayjs";
 import { router } from "expo-router";
 import { useState } from "react";
@@ -26,6 +27,13 @@ const initials = (name: string) =>
     .toUpperCase();
 
 export default function Index() {
+  const { user } = useUser();
+  const displayName =
+    user?.fullName ||
+    user?.firstName ||
+    user?.primaryEmailAddress?.emailAddress.split("@")[0] ||
+    homeUser.name;
+
   const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
     string | null
   >(null);
@@ -59,10 +67,12 @@ export default function Index() {
               <View className="home-user">
                 <View className="home-avatar">
                   <Text className="home-avatar-text">
-                    {initials(homeUser.name)}
+                    {initials(displayName)}
                   </Text>
                 </View>
-                <Text className="home-user-name">{homeUser.name}</Text>
+                <Text className="home-user-name" numberOfLines={1}>
+                  {displayName}
+                </Text>
               </View>
               <Icon name={icons.add} className="home-add-icon" />
             </View>

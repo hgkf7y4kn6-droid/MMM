@@ -1,4 +1,4 @@
-import { ClerkProvider } from "@clerk/clerk-expo";
+import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
 import { tokenCache } from "@clerk/clerk-expo/token-cache";
 import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
@@ -6,7 +6,7 @@ import { useEffect } from "react";
 
 import "@/global.css";
 
-// Keep the splash screen up until the fonts below have loaded.
+// Keep the splash screen up until fonts and the auth state have loaded.
 SplashScreen.preventAutoHideAsync();
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -27,17 +27,38 @@ export default function RootLayout() {
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
   });
 
-  useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded]);
-
   if (!fontsLoaded) return null;
 
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <Stack screenOptions={{ headerShown: false }} />
+      <RootNavigator />
     </ClerkProvider>
+  );
+}
+
+function RootNavigator() {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  useEffect(() => {
+    if (isLoaded) {
+      SplashScreen.hideAsync();
+    }
+  }, [isLoaded]);
+
+  if (!isLoaded) return null;
+
+  // Signed-out users can only reach the (auth) screens; signed-in users can't
+  // go back to them. Expo Router redirects automatically when this flips.
+  return (
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!isSignedIn}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="subscriptions/[id]" />
+      </Stack.Protected>
+      <Stack.Protected guard={!isSignedIn}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+    </Stack>
   );
 }

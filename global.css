@@ -233,3 +233,76 @@
 @utility sub-on-color-muted {
   @apply text-[#1a1a20]/60;
 }
+
+/* Auth screens */
+@utility auth-scroll {
+  @apply grow justify-center p-6;
+}
+@utility auth-brand {
+  @apply mb-8 items-center;
+}
+@utility auth-brand-mark {
+  @apply font-sans-extrabold text-4xl text-primary;
+}
+@utility auth-brand-name {
+  @apply mt-1 font-sans-medium text-sm text-muted-foreground;
+}
+@utility auth-title {
+  @apply font-sans-extrabold text-3xl text-foreground;
+}
+@utility auth-subtitle {
+  @apply mt-2 font-sans text-base text-muted-foreground;
+}
+@utility auth-form {
+  @apply mt-8 gap-4;
+}
+@utility auth-field {
+  @apply gap-1.5;
+}
+@utility auth-label {
+  @apply font-sans-semibold text-sm text-foreground;
+}
+@utility auth-input {
+  @apply rounded-2xl border border-border bg-card px-4 py-3.5 font-sans text-base text-foreground;
+}
+@utility auth-button {
+  @apply mt-2 items-center rounded-2xl bg-primary py-4;
+}
+@utility auth-button-text {
+  @apply font-sans-bold text-base text-primary-foreground;
+}
+@utility auth-button-ghost {
+  @apply items-center py-3;
+}
+@utility auth-button-ghost-text {
+  @apply font-sans-semibold text-sm text-primary;
+}
+@utility auth-error {
+  @apply font-sans-medium text-sm text-destructive;
+}
+@utility auth-footer {
+  @apply mt-8 items-center;
+}
+@utility auth-footer-text {
+  @apply font-sans text-sm text-muted-foreground;
+}
+@utility auth-link {
+  @apply font-sans-bold text-primary;
+}
+
+/* Settings */
+@utility settings-card {
+  @apply mt-6 rounded-3xl border border-border bg-card p-4;
+}
+@utility settings-label {
+  @apply font-sans-medium text-xs text-muted-foreground;
+}
+@utility settings-value {
+  @apply mt-1 font-sans-semibold text-base text-foreground;
+}
+@utility settings-signout {
+  @apply mt-6 items-center rounded-2xl border border-destructive py-4;
+}
+@utility settings-signout-text {
+  @apply font-sans-bold text-base text-destructive;
+}
