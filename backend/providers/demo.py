@@ -162,7 +162,7 @@ class DemoProvider:
         return BenchmarkAggregates(
             name="S&P 500 (illustrative)",
             fcf_per_index_share={2019: 150.0, 2020: 140.0, 2021: 175.0, 2022: 180.0, 2023: 195.0, 2024: 215.0},
-            dps_per_index_share={2019: 58.0, 2020: 58.5, 2021: 60.5, 2022: 67.0, 2023: 70.0, 2024: 74.5},
+            dps_per_index_share={2019: 58.0, 2020: 58.5, 2021: 60.5, 2022: 67.0, 2023: 70.0, 2024: 74.5, 2025: 78.0},
             roic={2019: 0.095, 2020: 0.085, 2021: 0.11, 2022: 0.105, 2023: 0.10, 2024: 0.105},
             dividend_yield=0.013,
             provenance=_provenance("Illustrative round numbers in the shape of S&P 500 per-index-share aggregates; "

@@ -17,4 +17,13 @@ export const icons = {
   fitness: "barbell",
   news: "newspaper",
   ai: "sparkles",
+  back: "chevron-back",
+  forward: "chevron-forward",
+  demo: "flask",
+  search: "search",
+  portfolio: "pie-chart",
+  research: "analytics",
+  pro: "diamond",
+  favorable: "checkmark-circle",
+  unfavorable: "alert-circle",
 } as const satisfies Record<string, IconName>;

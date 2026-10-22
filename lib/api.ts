@@ -1,0 +1,112 @@
+import { API_BASE_URL } from "@/constants/config";
+
+/**
+ * Client for the Mindful Money API. Every request carries the signed-in
+ * user's session token (Authorization: Bearer); the server decides what the
+ * account may see, so nothing here is trusted for access control.
+ * Pattern from DFS-Riches mobile/lib/api.ts.
+ */
+
+/** Returns the session token; `fresh` skips any cached copy. */
+type TokenSource = (fresh?: boolean) => Promise<string | null>;
+let tokenSource: TokenSource = async () => null;
+
+/** Set by the auth provider once someone signs in (and reset on sign-out). */
+export function setTokenSource(fn: TokenSource | null) {
+  tokenSource = fn ?? (async () => null);
+}
+
+export class ApiError extends Error {
+  status: number;
+  code: string | null;
+  constructor(message: string, status: number, code: string | null = null) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+  /** The account needs Pro for this (HTTP 402). */
+  get proRequired() {
+    return this.status === 402;
+  }
+}
+
+export const apiConfigured = () => API_BASE_URL.length > 0;
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!apiConfigured()) {
+    throw new ApiError("Not connected to the Mindful Money service yet.", 0, "not_configured");
+  }
+  const call = async (fresh: boolean) => {
+    const token = await tokenSource(fresh);
+    return fetch(`${API_BASE_URL}${path}`, {
+      ...init,
+      headers: {
+        Accept: "application/json",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...init.headers,
+      },
+    });
+  };
+  let res: Response;
+  try {
+    res = await call(false);
+    // A turned-down session gets one quiet retry with a fresh token.
+    if (res.status === 401) res = await call(true);
+  } catch {
+    throw new ApiError("Couldn't reach the server. Check your connection and try again.", 0, "network");
+  }
+  if (!res.ok) {
+    let message = `Something went wrong (${res.status}).`;
+    let code: string | null = null;
+    try {
+      const body = await res.json();
+      const detail = body?.detail;
+      if (typeof detail === "string") message = detail;
+      else if (detail && typeof detail === "object") {
+        message = detail.message ?? message;
+        code = detail.code ?? null;
+      }
+    } catch {
+      // not JSON: keep the generic message
+    }
+    throw new ApiError(message, res.status, code);
+  }
+  return (await res.json()) as T;
+}
+
+const enc = encodeURIComponent;
+
+export const api = {
+  me: () => request<MeResponse>("/api/me"),
+  searchStocks: (q: string) =>
+    request<{ results: StockSearchResult[]; data_mode: DataMode }>(`/api/stocks/search?q=${enc(q)}`),
+  matrix: (symbol: string) => request<StockMatrix>(`/api/stocks/${enc(symbol)}/matrix`),
+  fcf: (symbol: string) => request<FcfAnalysis>(`/api/stocks/${enc(symbol)}/fcf`),
+  roic: (symbol: string) => request<RoicAnalysis>(`/api/stocks/${enc(symbol)}/roic`),
+  dividendGrowth: (symbol: string) =>
+    request<DividendGrowthAnalysis>(`/api/stocks/${enc(symbol)}/dividend-growth`),
+  capitalAllocation: (symbol: string) =>
+    request<CapitalAllocationAnalysis>(`/api/stocks/${enc(symbol)}/capital-allocation`),
+  portfolioOverview: (source: PortfolioSource) =>
+    request<PortfolioOverview>(`/api/portfolio/overview?source=${source}`),
+  portfolioPerformance: (source: PortfolioSource) =>
+    request<PerformanceResponse>(`/api/portfolio/performance?source=${source}`),
+  portfolioIncome: (source: PortfolioSource, target: number) =>
+    request<IncomeAnalysis>(`/api/portfolio/income?source=${source}&target=${target}`),
+  exportMyData: () => request<Record<string, unknown>>("/api/me/export"),
+  deleteMyData: () => request<{ deleted: Record<string, number>; note: string | null }>("/api/me", { method: "DELETE" }),
+  checkout: (returnUrl: string) =>
+    request<{ url: string }>("/api/billing/checkout", {
+      method: "POST",
+      body: JSON.stringify({ success_url: returnUrl, cancel_url: returnUrl }),
+    }),
+  billingPortal: (returnUrl: string) =>
+    request<{ url: string }>("/api/billing/portal", {
+      method: "POST",
+      body: JSON.stringify({ success_url: returnUrl, cancel_url: returnUrl }),
+    }),
+  syncBilling: () => request<Entitlement>("/api/billing/sync", { method: "POST" }),
+};
+
+export type PortfolioSource = "linked" | "demo";

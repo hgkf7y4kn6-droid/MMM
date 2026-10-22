@@ -208,7 +208,10 @@ def incremental_roic(begin: FiscalYear, end: FiscalYear) -> Metric:
         return not_meaningful("pct", "Invested capital didn't grow materially (under 5%), so the return on new "
                               "capital can't be measured reliably.", period=period, formula=formula,
                               inputs={"delta_nopat": d_nopat, "delta_invested_capital": d_ic})
-    return ok(d_nopat / d_ic, "pct", period=period, formula=formula,
+    value = d_nopat / d_ic
+    notes = ("Above 100%: profit grew much faster than the capital added, so this figure is very sensitive to "
+             "small changes in either; treat it as directional.",) if abs(value) > 1 else ()
+    return ok(value, "pct", period=period, formula=formula, notes=notes,
               inputs={"delta_nopat": d_nopat, "delta_invested_capital": d_ic})
 
 

@@ -23,6 +23,11 @@ export const colors = {
     subscription: "#7a3fd6",
     investment: "#0a9891",
     info: "#0678a0",
+    toneGreen: "#0a8a5f",
+    toneYellow: "#a8791f",
+    toneBlue: "#1668c9",
+    tonePink: "#c0306e",
+    toneOrange: "#c25a14",
   },
   dark: {
     background: "#0a0a10",
@@ -44,6 +49,11 @@ export const colors = {
     subscription: "#a06bff",
     investment: "#00d4c8",
     info: "#22d3ee",
+    toneGreen: "#2fd39a",
+    toneYellow: "#d4af37",
+    toneBlue: "#4a9eff",
+    tonePink: "#f06aa5",
+    toneOrange: "#f08a3c",
   },
 } as const;
 
@@ -63,3 +73,5 @@ export const components = {
     iconFrame: 48,
   },
 } as const;
+
+export type ThemeColors = (typeof colors)["light"] | (typeof colors)["dark"];

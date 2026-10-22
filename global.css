@@ -37,6 +37,13 @@
   --color-investment: #0a9891;
   --color-info: #0678a0;
 
+  /* Analysis categories (stock matrix): validated against both surfaces */
+  --color-tone-green: #0a8a5f;
+  --color-tone-yellow: #a8791f;
+  --color-tone-blue: #1668c9;
+  --color-tone-pink: #c0306e;
+  --color-tone-orange: #c25a14;
+
   /* Fonts: names match the keys passed to useFonts in app/_layout.tsx */
   --font-sans: "sans-regular";
   --font-sans-light: "sans-light";
@@ -81,6 +88,12 @@
     --color-subscription: #a06bff;
     --color-investment: #00d4c8;
     --color-info: #22d3ee;
+
+    --color-tone-green: #2fd39a;
+    --color-tone-yellow: #d4af37;
+    --color-tone-blue: #4a9eff;
+    --color-tone-pink: #f06aa5;
+    --color-tone-orange: #f08a3c;
   }
 }
 
@@ -232,4 +245,221 @@
 }
 @utility sub-on-color-muted {
   @apply text-[#1a1a20]/60;
+}
+
+/* ── Research & portfolio analytics ──────────────────────────────────────── */
+@utility screen {
+  @apply flex-1 bg-background;
+}
+@utility screen-pad {
+  @apply px-5 pb-32 pt-2;
+}
+@utility screen-title {
+  @apply font-sans-extrabold text-3xl text-foreground;
+}
+@utility screen-subtitle {
+  @apply mt-1 font-sans text-sm text-muted-foreground;
+}
+@utility back-link {
+  @apply mb-2 flex-row items-center gap-1 self-start py-2;
+}
+@utility back-link-text {
+  @apply font-sans-semibold text-sm text-primary;
+}
+@utility card {
+  @apply rounded-3xl border border-border bg-card p-4;
+}
+@utility card-title {
+  @apply font-sans-bold text-lg text-foreground;
+}
+@utility card-caption {
+  @apply mt-1 font-sans text-xs leading-5 text-muted-foreground;
+}
+@utility section-gap {
+  @apply mt-4;
+}
+@utility tone-bar {
+  @apply mr-2 h-5 w-1.5 rounded-full;
+}
+
+/* Metric rows */
+@utility metric-row {
+  @apply border-b border-border py-3;
+}
+@utility metric-head {
+  @apply flex-row items-center justify-between gap-3;
+}
+@utility metric-label {
+  @apply flex-1 font-sans-medium text-sm text-foreground;
+}
+@utility metric-value {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility metric-value-na {
+  @apply font-sans-medium text-sm text-muted-foreground;
+}
+@utility metric-good {
+  @apply text-success;
+}
+@utility metric-bad {
+  @apply text-destructive;
+}
+@utility metric-reason {
+  @apply mt-1 font-sans text-xs leading-5 text-muted-foreground;
+}
+@utility metric-detail {
+  @apply mt-2 gap-1 rounded-2xl bg-muted p-3;
+}
+@utility metric-detail-text {
+  @apply font-sans text-xs leading-5 text-muted-foreground;
+}
+@utility metric-detail-strong {
+  @apply font-sans-semibold text-xs text-foreground;
+}
+
+/* Stat cards */
+@utility stat-grid {
+  @apply flex-row flex-wrap gap-3;
+}
+@utility stat-card {
+  @apply min-w-36 flex-1 rounded-2xl bg-muted p-3;
+}
+@utility stat-label {
+  @apply font-sans-medium text-xs text-muted-foreground;
+}
+@utility stat-value {
+  @apply mt-1 font-sans-extrabold text-xl text-foreground;
+}
+@utility stat-sub {
+  @apply mt-0.5 font-sans text-xs text-muted-foreground;
+}
+
+/* Badges and chips */
+@utility badge-row {
+  @apply mt-3 flex-row flex-wrap gap-2;
+}
+@utility badge {
+  @apply flex-row items-center gap-1 rounded-full bg-muted px-2.5 py-1;
+}
+@utility badge-text {
+  @apply font-sans-semibold text-xs text-muted-foreground;
+}
+@utility badge-warn {
+  @apply bg-gold/15;
+}
+@utility badge-warn-text {
+  @apply text-gold;
+}
+@utility chip-row {
+  @apply flex-row gap-2;
+}
+@utility chip {
+  @apply min-h-11 items-center justify-center rounded-full border border-border bg-card px-4;
+}
+@utility chip-active {
+  @apply border-primary bg-primary;
+}
+@utility chip-text {
+  @apply font-sans-semibold text-sm text-muted-foreground;
+}
+@utility chip-text-active {
+  @apply text-primary-foreground;
+}
+
+/* Buttons */
+@utility btn {
+  @apply min-h-12 items-center justify-center rounded-full bg-primary px-6;
+}
+@utility btn-text {
+  @apply font-sans-bold text-base text-primary-foreground;
+}
+@utility btn-outline {
+  @apply min-h-11 items-center justify-center rounded-full border border-border px-5;
+}
+@utility btn-outline-text {
+  @apply font-sans-semibold text-sm text-foreground;
+}
+@utility btn-danger-text {
+  @apply font-sans-semibold text-sm text-destructive;
+}
+
+/* Status */
+@utility empty-text {
+  @apply py-4 text-center font-sans text-sm text-muted-foreground;
+}
+@utility error-text {
+  @apply text-center font-sans-medium text-sm text-destructive;
+}
+
+/* Pro lock */
+@utility pro-lock {
+  @apply overflow-hidden rounded-3xl border border-border bg-card;
+}
+@utility pro-lock-overlay {
+  @apply items-center px-6 py-6;
+}
+@utility pro-kicker {
+  @apply font-sans-bold text-xs uppercase tracking-widest text-primary;
+}
+@utility pro-lock-title {
+  @apply mt-1 text-center font-sans-bold text-lg text-foreground;
+}
+@utility pro-lock-text {
+  @apply mt-1 text-center font-sans text-sm leading-5 text-muted-foreground;
+}
+
+/* Search */
+@utility search-box {
+  @apply mt-4 min-h-12 flex-row items-center gap-2 rounded-full border border-border bg-card px-4;
+}
+@utility search-input {
+  @apply flex-1 py-3 font-sans text-base text-foreground;
+}
+@utility list-row {
+  @apply min-h-14 flex-row items-center justify-between border-b border-border py-3;
+}
+@utility list-row-title {
+  @apply font-sans-bold text-base text-foreground;
+}
+@utility list-row-sub {
+  @apply mt-0.5 font-sans text-xs text-muted-foreground;
+}
+
+/* Tables */
+@utility tbl-head {
+  @apply flex-row border-b border-border pb-2;
+}
+@utility tbl-row {
+  @apply flex-row items-center border-b border-border py-2.5;
+}
+@utility tbl-cell {
+  @apply flex-1 font-sans text-sm text-foreground;
+}
+@utility tbl-cell-num {
+  @apply w-24 text-right font-sans-semibold text-sm text-foreground;
+}
+@utility tbl-head-text {
+  @apply font-sans-semibold text-xs text-muted-foreground;
+}
+
+/* Disclosures */
+@utility disclaimer {
+  @apply mt-6 font-sans text-xs leading-5 text-muted-foreground;
+}
+@utility prose {
+  @apply mt-3 font-sans text-sm leading-6 text-foreground;
+}
+@utility prose-head {
+  @apply mt-6 font-sans-bold text-lg text-foreground;
+}
+
+/* Settings rows */
+@utility settings-row {
+  @apply min-h-14 flex-row items-center justify-between border-b border-border py-3;
+}
+@utility settings-label {
+  @apply font-sans-semibold text-base text-foreground;
+}
+@utility settings-value {
+  @apply font-sans text-sm text-muted-foreground;
 }

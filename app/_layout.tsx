@@ -2,6 +2,8 @@ import { useFonts } from "expo-font";
 import { SplashScreen, Stack } from "expo-router";
 import { useEffect } from "react";
 
+import { EntitlementsProvider } from "@/lib/entitlements";
+
 import "@/global.css";
 
 // Keep the splash screen up until the fonts below have loaded.
@@ -25,5 +27,9 @@ export default function RootLayout() {
 
   if (!fontsLoaded) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <EntitlementsProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </EntitlementsProvider>
+  );
 }
