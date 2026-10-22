@@ -52,7 +52,7 @@ class DividendEvent:
     dps: float              # amount ÷ shares, current basis
 
 
-class _Positions:
+class Positions:
     """Share counts through time per symbol, all on the current split basis."""
 
     def __init__(self, ledger: Ledger):
@@ -121,7 +121,7 @@ def income_by_year(events: list[DividendEvent]) -> dict[int, float]:
 def analyze(ledger: Ledger, *, as_of: date, forward_dps: dict[str, float | None] | None = None,
             prices: dict[str, float | None] | None = None, benchmark: BenchmarkAggregates | None = None,
             target_growth: float = DEFAULT_TARGET_GROWTH) -> dict:
-    pos = _Positions(ledger)
+    pos = Positions(ledger)
     events = [e for e in pos.events if e.day <= as_of]
     if not events:
         return {"status": "insufficient_data", "reason": "No dividends recorded yet.", "objective_note": OBJECTIVE_NOTE}
@@ -192,7 +192,7 @@ def analyze(ledger: Ledger, *, as_of: date, forward_dps: dict[str, float | None]
     }
 
 
-def _organic_and_attribution(y: int, pos: _Positions, sym_year, symbols, total_change: float) -> dict:
+def _organic_and_attribution(y: int, pos: Positions, sym_year, symbols, total_change: float) -> dict:
     opened_by = date(y - 1, 1, 1) + timedelta(days=OPEN_GRACE_DAYS)
     start_y, end_y = date(y, 1, 1), date(y, 12, 31)
     num = den = 0.0
@@ -229,7 +229,7 @@ def _organic_and_attribution(y: int, pos: _Positions, sym_year, symbols, total_c
     }
 
 
-def _forward(pos: _Positions, as_of: date, forward_dps: dict, prices: dict) -> dict:
+def _forward(pos: Positions, as_of: date, forward_dps: dict, prices: dict) -> dict:
     rows, total, value, missing = [], 0.0, 0.0, []
     for s in sorted(pos.timeline):
         q = pos.shares_on(s, as_of, before=False)

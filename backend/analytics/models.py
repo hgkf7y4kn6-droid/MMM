@@ -25,9 +25,10 @@ class Provenance:
     demo: bool = False
     license_note: str | None = None
     methodology: str | None = None
+    stale: bool = False             # served from cache after a failed refresh
 
     def to_dict(self) -> dict:
-        return {"source": self.source, "retrieved_at": self.retrieved_at, "demo": self.demo,
+        return {"source": self.source, "retrieved_at": self.retrieved_at, "demo": self.demo, "stale": self.stale,
                 "license_note": self.license_note, "methodology": self.methodology}
 
 

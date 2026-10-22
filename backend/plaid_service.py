@@ -3,7 +3,7 @@ import plaid
 from plaid.api import plaid_api
 from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
-from plaid.model.link_token_create_request_transactions import LinkTokenCreateRequestTransactions
+from plaid.model.link_token_transactions import LinkTokenTransactions
 from plaid.model.item_public_token_exchange_request import ItemPublicTokenExchangeRequest
 from plaid.model.transactions_sync_request import TransactionsSyncRequest
 from plaid.model.accounts_get_request import AccountsGetRequest
@@ -11,6 +11,7 @@ from plaid.model.investments_transactions_get_request import InvestmentsTransact
 from plaid.model.investments_transactions_get_request_options import InvestmentsTransactionsGetRequestOptions
 from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
+from plaid.model.webhook_verification_key_get_request import WebhookVerificationKeyGetRequest
 
 # ── Transfer product ─────────────────────────────────────────────────────────
 # NOTE ON CONFIDENCE: Plaid's Transfer product (real ACH/RTP money movement,
@@ -29,20 +30,21 @@ from plaid.model.transfer_capabilities_get_request import TransferCapabilitiesGe
 from plaid.model.transfer_migrate_account_request import TransferMigrateAccountRequest
 from plaid.model.transfer_user_in_request import TransferUserInRequest
 
-PLAID_CLIENT_ID = os.environ["PLAID_CLIENT_ID"]
-PLAID_SECRET = os.environ["PLAID_SECRET"]
+PLAID_CLIENT_ID = os.environ.get("PLAID_CLIENT_ID")
+PLAID_SECRET = os.environ.get("PLAID_SECRET")
 PLAID_ENV = os.environ.get("PLAID_ENV", "sandbox")
 
 _env_map = {
     "sandbox": plaid.Environment.Sandbox,
-    "development": plaid.Environment.Development,
     "production": plaid.Environment.Production,
 }
 
+# None when Plaid isn't configured: bank linking answers 503, and the rest of
+# the API (research, demo portfolio, billing) still runs.
 client = plaid_api.PlaidApi(plaid.ApiClient(plaid.Configuration(
     host=_env_map[PLAID_ENV],
     api_key={"clientId": PLAID_CLIENT_ID, "secret": PLAID_SECRET},
-)))
+))) if PLAID_CLIENT_ID and PLAID_SECRET else None
 
 # Plaid's investment transaction `type` is "buy"/"sell"/"cash"/"fee"/"transfer";
 # the dividend signal lives in `subtype`, not `type` — a cash dividend payout
@@ -65,11 +67,11 @@ def build_link_token_request(user_id: str) -> LinkTokenCreateRequest:
         # Transfer API calls below work off the same access_token regardless,
         # as long as Transfer is enabled for your Plaid account.
         products=[Products("transactions"), Products("investments")],
-        client_name="My Financial App",
+        client_name="Mindful Money",
         country_codes=[CountryCode("US")],
         language="en",
         user=LinkTokenCreateRequestUser(client_user_id=user_id),
-        transactions=LinkTokenCreateRequestTransactions(days_requested=TRANSACTIONS_DAYS_REQUESTED),
+        transactions=LinkTokenTransactions(days_requested=TRANSACTIONS_DAYS_REQUESTED),
     )
 
 
@@ -160,3 +162,7 @@ def build_transfer_migrate_account_request(account_number: str, routing_number: 
         account_type=account_type,
         user=TransferUserInRequest(legal_name=legal_name),
     )
+
+
+def build_webhook_key_request(key_id: str) -> WebhookVerificationKeyGetRequest:
+    return WebhookVerificationKeyGetRequest(key_id=key_id)

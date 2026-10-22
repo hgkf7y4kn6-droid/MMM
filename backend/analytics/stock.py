@@ -52,6 +52,16 @@ def dividend_yields(c: CompanyFundamentals) -> dict[str, Metric]:
     return out
 
 
+def pays_dividend(dps: dict) -> bool:
+    return any(v for v in dps.values())
+
+
+def dps_cagr(dps: dict, years: int = HISTORY_YEARS) -> Metric:
+    if not pays_dividend(dps) and any(v is not None for v in dps.values()):
+        return not_applicable("pct", "The company doesn't pay a dividend.")
+    return series_cagr(dps, years)
+
+
 def matrix(c: CompanyFundamentals) -> dict:
     latest = c.latest
     if latest is None:
@@ -71,7 +81,7 @@ def matrix(c: CompanyFundamentals) -> dict:
                  help="Compound annual growth in diluted earnings per share."),
             _row("fcf_cagr_5y", "Free cash flow CAGR (5y)", series_cagr(fcf, HISTORY_YEARS),
                  help="Compound annual growth in operating cash flow minus capital expenditures."),
-            _row("dps_cagr_5y", "Dividend per share CAGR (5y)", series_cagr(dps, HISTORY_YEARS),
+            _row("dps_cagr_5y", "Dividend per share CAGR (5y)", dps_cagr(dps),
                  help="Compound annual growth in split-adjusted dividends per share."),
             _row("fcf_margin", "Free cash flow margin", f.fcf_margin(latest),
                  help="Share of each revenue dollar left as free cash flow."),
@@ -124,7 +134,7 @@ def matrix(c: CompanyFundamentals) -> dict:
             _row("yield_forward", "Forward yield", yields["forward"], help="Indicated annual dividend ÷ price."),
             _row("yield_trailing", "Trailing yield (12m)", yields["trailing"], help="Dividends paid in the last 12 months ÷ price."),
             _row("yield_fiscal_year", "Fiscal-year yield", yields["fiscal_year"], help="Latest fiscal-year dividends per share ÷ price."),
-            _row("dps_cagr_5y_div", "Dividend CAGR (5y)", series_cagr(dps, HISTORY_YEARS),
+            _row("dps_cagr_5y_div", "Dividend CAGR (5y)", dps_cagr(dps),
                  help="Compound annual growth in dividends per share."),
             _row("dividend_streak", "Dividend growth streak", _streak(c, dps),
                  help="Consecutive years of dividend-per-share increases in the reported history."),
@@ -145,6 +155,8 @@ def matrix(c: CompanyFundamentals) -> dict:
 
 
 def _streak(c: CompanyFundamentals, dps: dict) -> Metric:
+    if not pays_dividend(dps) and any(v is not None for v in dps.values()):
+        return not_applicable("years", "The company doesn't pay a dividend.")
     if c.dividend_streak_verified is not None:
         return ok(c.dividend_streak_verified, "years", notes=("Verified by the data source.",))
     derived = increase_streak(dps)

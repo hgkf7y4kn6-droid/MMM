@@ -41,7 +41,7 @@ CHART_POINTS = 120
 EXTERNAL = {"deposit", "withdrawal", "transfer_in", "transfer_out"}
 
 
-def _minus_months(d: date, months: int) -> date:
+def minus_months(d: date, months: int) -> date:
     y, m = divmod(d.month - 1 - months, 12)
     year, month = d.year + y, m + 1
     return date(year, month, min(d.day, monthrange(year, month)[1]))
@@ -56,7 +56,7 @@ def window_target(key: str, end: date) -> date:
     if key == "YTD":
         return date(end.year - 1, 12, 31)
     months = {"1M": 1, "3M": 3, "6M": 6, "1Y": 12, "3Y": 36, "5Y": 60}[key]
-    return _minus_months(end, months)
+    return minus_months(end, months)
 
 
 @dataclass
