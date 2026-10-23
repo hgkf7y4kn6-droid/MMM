@@ -9,6 +9,17 @@
 | Database | Neon Postgres (`DATABASE_URL`) | Run the migrations below |
 | App | Expo / EAS builds; web via `npx expo export --platform web` | `EXPO_PUBLIC_API_URL` |
 
+## Render
+
+| Service | Type | Build command | Start / publish |
+|---|---|---|---|
+| `mmm-api` | Python web service, `PYTHON_VERSION=3.12.7` | `cd backend && pip install -r requirements.txt` | `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| `mmm-web` | Static site | `npm ci && npx expo export --platform web` | publish `dist`; add a rewrite rule `/*` → `/index.html` (the web app is a single-page app) |
+
+`EXPO_PUBLIC_API_URL` on `mmm-web` is read at **build** time, so redeploy the site after changing it. Add
+the site's URL to `ALLOWED_ORIGINS` on `mmm-api`. The API's own repo-root `package.json` is the Expo app,
+so a Node web service pointed at the repo root can't run anything; that's why the API is a Python service.
+
 ## Environment variables
 
 `backend/.env.example` lists all of them with comments. For production (`APP_ENV=production`):
