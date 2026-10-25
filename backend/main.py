@@ -40,6 +40,7 @@ from auth import User, current_user, is_admin, require_self, sign_in_required
 import api_account
 import api_portfolio
 import api_stocks
+import api_subscriptions
 import guard
 import plaid_service
 import market_data
@@ -77,6 +78,7 @@ app.add_middleware(guard.GuardMiddleware)   # outermost: rate limits and body ca
 app.include_router(api_stocks.router)
 app.include_router(api_portfolio.router)
 app.include_router(api_account.router)
+app.include_router(api_subscriptions.router)
 
 
 def _plaid():

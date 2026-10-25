@@ -1,41 +1,52 @@
-# Mindful Money Management
+# Mindful Money
 
-A dividend growth research and portfolio app. It helps investors see how companies turn capital into growth,
-free cash flow and rising dividends, and whether their own portfolio's income and total return are keeping
-pace with the S&P 500. It's analytical decision support, not investment advice.
+Track every subscription, research dividend growth stocks, and measure your portfolio against the S&P 500.
+Live at **https://mmm.richesdigitalventures.com**.
 
-- **App:** Expo SDK 54 (expo-router, NativeWind v5) in the repo root
-- **API:** FastAPI in `backend/`: calculation engine, data providers, auth, Pro entitlements, Plaid sync
-- **Prototype:** `reference/MindfulMoneyManagement.jsx` (the original single-file web prototype)
+| Part | What it is |
+|---|---|
+| `app/`, `components/`, `lib/` | The app: Expo (SDK 54) + Expo Router, NativeWind. One codebase for iOS, Android and the web. |
+| `backend/` | The API: FastAPI + SQLAlchemy (Postgres in production), Celery for slow jobs. |
+| `docs/` | Architecture, methodology, deployment and the launch report. |
+| `reference/` | The original single-file prototype, kept for porting features. |
+
+## Features
+
+- **Subscriptions** — add what you pay for on repeat; see the monthly and yearly total, what renews next, and
+  spend by category. Renewal dates roll forward automatically. Stored per account, so they follow you to every
+  device.
+- **Dividend growth research** — revenue, EPS, free cash flow and dividend growth, ROIC and capital allocation,
+  each figure with its source and formula (Pro for the deeper analyses).
+- **Portfolio** — income growth and time-weighted return against the S&P 500, from linked brokerage accounts.
+- **Accounts** — sign-in is shared with Riches Analytics (one Riches Digital Ventures account). Export or delete
+  your data any time from Settings.
 
 ## Run it locally
 
 ```bash
-# API, using demo data with sign-in off (development only)
+# API (dev mode: no sign-in, demo market data, SQLite)
 cd backend
-python -m venv .venv && . .venv/bin/activate
 pip install -r requirements-dev.txt
-REQUIRE_SIGN_IN=0 MARKET_DATA_MODE=demo COMPLIMENTARY_PRO_USER_IDS=dev-user uvicorn main:app --reload --port 8000
-pytest tests
+REQUIRE_SIGN_IN=0 MARKET_DATA_MODE=demo uvicorn main:app --reload
 
 # App (another terminal, repo root)
 npm install
-EXPO_PUBLIC_API_URL=http://localhost:8000 npx expo start
+EXPO_PUBLIC_API_URL=http://localhost:8000 \
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_... \
+npx expo start
 ```
 
-Demo mode serves four **fictional** companies (`DEMO-LITE`, `DEMO-GRID`, `DEMO-TURN`, `DEMO-CASH`), an
-illustrative benchmark and a sample portfolio. Everything is labeled "Demo data · not market data".
-
-## Docs
-
-- [Architecture](docs/ARCHITECTURE.md): repository comparison, structure, feature inventory, Free vs Pro matrix
-- [Methodology](docs/METHODOLOGY.md): every formula, benchmark construction, edge cases
-- [Deployment](docs/DEPLOYMENT.md): environment variables, migrations, billing setup, data providers, launch checklist
-- [Launch report](docs/LAUNCH_REPORT.md): tests, performance, security, outstanding work
+The production Clerk key only works on `*.richesdigitalventures.com`, so local development needs a `pk_test_` key
+from a Clerk development instance.
 
 ## Checks
 
 ```bash
-npx tsc --noEmit && npx expo lint          # app
-cd backend && pytest tests                 # API (98 tests)
+cd backend && pytest tests      # API tests
+npx tsc --noEmit                # types
+npx expo lint                   # lint
+npx expo export --platform web  # web build
 ```
+
+CI runs all of these on every push (`.github/workflows/ci.yml`). Deployment is described in
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).

@@ -4,7 +4,7 @@
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit and API tests (98) | `cd backend && pip install -r requirements-dev.txt && pytest tests` | **98 passed** |
+| Backend unit and API tests (115) | `cd backend && pip install -r requirements-dev.txt && pytest tests` | **115 passed** |
 | TypeScript | `npx tsc --noEmit` | clean |
 | Lint | `npx expo lint` | clean |
 | Web build | `npx expo export --platform web` | builds |
@@ -90,10 +90,8 @@ thousands of transactions; cache per user (invalidated on sync) if it grows.
 
 ## Outstanding work (priority order)
 
-1. **Sign-in in the app.** The API requires Clerk sessions, but the app's `(auth)` screens are still
-   placeholders. Add `@clerk/clerk-expo`, then call `setTokenSource(() => getToken())` from `lib/api.ts`
-   after sign-in. DFS-Riches `lib/account-sync.tsx` and `components/auth/` are the pattern to follow. Until
-   then the app works against an API running with `REQUIRE_SIGN_IN=0` (development only).
+1. ~~Sign-in in the app~~ — done: Clerk sign-in and sign-up (shared Riches Digital Ventures instance), every
+   screen except the disclosures requires an account, and `lib/session.tsx` hands the session token to the API.
 2. **Licensed data:** an S&P 500 aggregates file, a Tiingo commercial plan with fundamentals (and the data
    code mapping verified), and an estimates provider.
 3. **In-app purchase:** add `react-native-purchases` (needs a development build) for App Store and Play

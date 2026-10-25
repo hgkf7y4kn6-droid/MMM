@@ -1,6 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { api, apiConfigured } from "@/lib/api";
+import { useUserId } from "@/lib/session";
 
 type Ctx = {
   me: MeResponse | null;
@@ -18,27 +19,38 @@ const EntitlementsContext = createContext<Ctx>({
 });
 
 /**
- * The account's plan, from GET /api/me. This only decides what the UI
- * offers; every Pro endpoint re-checks on the server, so a modified client
- * gets a 402, not the data.
+ * The signed-in account's plan, from GET /api/me. This only decides what the
+ * UI offers; every Pro endpoint re-checks on the server, so a modified client
+ * gets a 402, not the data. Reloaded whenever a different user signs in, and
+ * cleared on sign-out so one account's plan never shows for another.
  */
 export function EntitlementsProvider({ children }: { children: ReactNode }) {
+  const userId = useUserId();
   const [me, setMe] = useState<MeResponse | null>(null);
-  const [loading, setLoading] = useState(apiConfigured());
+  const [loading, setLoading] = useState(apiConfigured() && !!userId);
+  // A response for a previous user (they signed out mid-request) is dropped.
+  const latest = useRef(0);
 
   const refresh = useCallback(async () => {
-    if (!apiConfigured()) return;
+    const ticket = ++latest.current;
+    if (!apiConfigured() || !userId) {
+      setMe(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      setMe(await api.me());
+      const next = await api.me();
+      if (ticket === latest.current) setMe(next);
     } catch {
-      setMe(null);
+      if (ticket === latest.current) setMe(null);
     } finally {
-      setLoading(false);
+      if (ticket === latest.current) setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
+    setMe(null);
     refresh();
   }, [refresh]);
 

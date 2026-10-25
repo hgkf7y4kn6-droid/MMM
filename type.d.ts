@@ -12,57 +12,54 @@ declare global {
     icon: IconName;
   };
 
-  type BillingCycle = "monthly" | "yearly";
+  type BillingCycle = "weekly" | "monthly" | "quarterly" | "yearly";
   type SubscriptionStatus = "active" | "paused" | "cancelled";
 
-  type Subscription = {
-    id: string;
-    icon: IconName;
+  /** What the user enters for a subscription they track (POST/PUT /api/subscriptions). */
+  type SubscriptionInput = {
     name: string;
-    plan?: string;
-    category?: string;
-    paymentMethod?: string;
-    status: SubscriptionStatus;
     price: number;
-    currency?: string;
+    currency: string;
     billing: BillingCycle;
+    category: string | null;
+    plan: string | null;
+    payment_method: string | null;
+    status: SubscriptionStatus;
     /** ISO date (YYYY-MM-DD) the subscription started */
-    startDate?: string;
+    start_date: string | null;
     /** ISO date (YYYY-MM-DD) of the next charge */
-    renewalDate: string;
-    /** Card background color when collapsed */
-    color?: string;
+    renewal_date: string;
+    notes: string | null;
   };
+
+  /** A tracked subscription as the API returns it; renewal_date is already rolled forward. */
+  type Subscription = SubscriptionInput & {
+    id: string;
+    days_until_renewal: number;
+    monthly_cost: number;
+  };
+
+  type SubscriptionsSummary = {
+    active_count: number;
+    /** Null when active subscriptions use more than one currency (totals are then null too). */
+    currency: string | null;
+    monthly_total: number | null;
+    yearly_total: number | null;
+    next_renewal_date: string | null;
+  };
+
+  type SubscriptionsResponse = { subscriptions: Subscription[]; summary: SubscriptionsSummary };
 
   type SubscriptionCardProps = Subscription & {
     expanded?: boolean;
     onPress?: () => void;
-  };
-
-  type UpcomingSubscription = {
-    id: string;
-    icon: IconName;
-    name: string;
-    price: number;
-    currency?: string;
-    daysLeft: number;
+    onEdit?: () => void;
   };
 
   type ListHeadingProps = {
     title: string;
     /** Called by the "View all" button; the button is hidden without it. */
     onPress?: () => void;
-  };
-
-  type HomeUser = {
-    name: string;
-  };
-
-  type HomeBalance = {
-    /** Total monthly spend on subscriptions */
-    amount: number;
-    /** ISO date (YYYY-MM-DD) of the next renewal across all subscriptions */
-    nextRenewalDate: string;
   };
 
   // ── Research & portfolio API (backend/api_*.py) ─────────────────────────

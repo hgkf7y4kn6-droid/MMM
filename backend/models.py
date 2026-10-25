@@ -126,6 +126,30 @@ class Subscription(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
 
+class TrackedSubscription(Base):
+    """A recurring bill the user tracks in the app (streaming, software, gym...).
+    Not to be confused with `Subscription`, the user's own Mindful Money Pro
+    plan. Entered by the user; `renewal_date` is the next charge they gave,
+    and the API rolls it forward by whole billing cycles once it passes."""
+    __tablename__ = "tracked_subscriptions"
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    price = Column(Float, nullable=False)
+    currency = Column(String, nullable=False, default="USD")
+    billing = Column(String, nullable=False, default="monthly")   # weekly | monthly | quarterly | yearly
+    category = Column(String, nullable=True)
+    plan = Column(String, nullable=True)
+    payment_method = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="active")     # active | paused | cancelled
+    start_date = Column(Date, nullable=True)
+    renewal_date = Column(Date, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class BillingEvent(Base):
     """Every billing webhook received, keyed by the provider's event id, so a
     redelivered event is recognized and applied at most once."""

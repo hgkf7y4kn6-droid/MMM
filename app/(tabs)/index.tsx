@@ -1,109 +1,163 @@
+import { useUser } from "@clerk/expo";
 import dayjs from "dayjs";
 import { router } from "expo-router";
-import { useState } from "react";
-import { FlatList, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
 
 import { Icon } from "@/components/icon";
 import ListHeading from "@/components/list-heading";
 import { SafeAreaView } from "@/components/safe-area-view";
+import StatusView from "@/components/status-view";
 import SubscriptionCard from "@/components/subscription-card";
 import UpcomingSubscriptionCard from "@/components/upcoming-subscription-card";
-import {
-  homeBalance,
-  homeSubscriptions,
-  homeUser,
-  upcomingSubscriptions,
-} from "@/constants/data";
 import { icons } from "@/constants/icons";
+import { addSubscription, editSubscription, useSubscriptions } from "@/lib/subscriptions";
+import { useThemeColors } from "@/lib/theme";
 import { formatCurrency } from "@/lib/utils";
 
-const initials = (name: string) =>
-  name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+const HOME_LIST_LIMIT = 5;
+const UPCOMING_DAYS = 30;
 
-export default function Index() {
-  const [expandedSubscriptionId, setExpandedSubscriptionId] = useState<
-    string | null
-  >(null);
+const greeting = () => {
+  const h = new Date().getHours();
+  return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+};
+
+function EmptyState() {
+  return (
+    <View className="empty-card">
+      <Icon name={icons.wallet} className="empty-card-icon" />
+      <Text className="empty-card-title">Track your first subscription</Text>
+      <Text className="empty-card-text">
+        Add the services you pay for and we&apos;ll total them up and show you what renews next.
+      </Text>
+      <Pressable className="btn mt-5 self-stretch" onPress={addSubscription} accessibilityRole="button">
+        <Text className="btn-text">Add a subscription</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+export default function Home() {
+  const { user } = useUser();
+  const colors = useThemeColors();
+  const { subscriptions, summary, loading, error, refresh } = useSubscriptions();
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const name = user?.firstName || user?.username || "there";
+  const initials = (user?.firstName?.[0] ?? user?.username?.[0] ?? "M").toUpperCase() + (user?.lastName?.[0] ?? "").toUpperCase();
+
+  const upcoming = useMemo(
+    () => subscriptions.filter((s) => s.status === "active" && s.days_until_renewal <= UPCOMING_DAYS),
+    [subscriptions],
+  );
+  const shown = subscriptions.slice(0, HOME_LIST_LIMIT);
+  const hasAny = subscriptions.length > 0;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-5">
+    <SafeAreaView className="screen" edges={["top"]}>
       <FlatList
-        data={homeSubscriptions}
+        data={hasAny ? shown : []}
         keyExtractor={(item) => item.id}
-        extraData={expandedSubscriptionId}
+        extraData={expanded}
         renderItem={({ item }) => (
           <SubscriptionCard
             {...item}
-            expanded={expandedSubscriptionId === item.id}
-            onPress={() =>
-              setExpandedSubscriptionId((currentId) =>
-                currentId === item.id ? null : item.id,
-              )
-            }
+            expanded={expanded === item.id}
+            onPress={() => setExpanded((current) => (current === item.id ? null : item.id))}
+            onEdit={() => editSubscription(item.id)}
           />
         )}
-        ItemSeparatorComponent={() => <View className="h-4" />}
+        ItemSeparatorComponent={() => <View className="h-3" />}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <Text className="home-empty-state">No subscriptions yet.</Text>
-        }
-        contentContainerClassName="pb-30"
+        contentContainerClassName="screen-pad"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListHeaderComponent={
           <>
-            <View className="home-header">
-              <View className="home-user">
+            <View className="screen-head">
+              <Pressable
+                className="home-user flex-1"
+                onPress={() => router.push("/settings")}
+                accessibilityRole="button"
+                accessibilityLabel="Account and settings"
+              >
                 <View className="home-avatar">
-                  <Text className="home-avatar-text">
-                    {initials(homeUser.name)}
+                  <Text className="home-avatar-text">{initials}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="home-greeting">{greeting()},</Text>
+                  <Text className="home-user-name" numberOfLines={1}>
+                    {name}
                   </Text>
                 </View>
-                <Text className="home-user-name">{homeUser.name}</Text>
-              </View>
-              <Icon name={icons.add} className="home-add-icon" />
+              </Pressable>
+              <Pressable className="icon-btn" onPress={addSubscription} accessibilityRole="button" accessibilityLabel="Add a subscription">
+                <Icon name="add" className="icon-btn-glyph" />
+              </Pressable>
             </View>
 
             <View className="home-balance-card">
-              <Text className="home-balance-label">Monthly subscriptions</Text>
+              <Text className="home-balance-label">Subscriptions per month</Text>
               <View className="home-balance-row">
-                <Text className="home-balance-amount">
-                  {formatCurrency(homeBalance.amount)}
+                <Text className="home-balance-amount" adjustsFontSizeToFit numberOfLines={1}>
+                  {summary?.monthly_total != null
+                    ? formatCurrency(summary.monthly_total, summary.currency ?? "USD")
+                    : loading
+                      ? "—"
+                      : hasAny
+                        ? "Mixed"
+                        : formatCurrency(0)}
                 </Text>
-                <Text className="home-balance-date">
-                  {dayjs(homeBalance.nextRenewalDate).format("MM/DD")}
+              </View>
+              <View className="home-balance-foot">
+                <Text className="home-balance-sub">
+                  {summary?.yearly_total != null
+                    ? `${formatCurrency(summary.yearly_total, summary.currency ?? "USD")} a year · ${summary.active_count} active`
+                    : summary && hasAny
+                      ? `${summary.active_count} active · several currencies`
+                      : "Nothing tracked yet"}
                 </Text>
+                {summary?.next_renewal_date ? (
+                  <Text className="home-balance-sub">Next {dayjs(summary.next_renewal_date).format("MMM D")}</Text>
+                ) : null}
               </View>
             </View>
 
-            <View className="mb-5">
-              <ListHeading
-                title="Upcoming"
-                onPress={() => router.push("/subscriptions")}
-              />
-              <FlatList
-                data={upcomingSubscriptions}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <UpcomingSubscriptionCard {...item} />
-                )}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                ListEmptyComponent={
-                  <Text className="home-empty-state">
-                    No upcoming renewals yet.
-                  </Text>
-                }
-              />
-            </View>
-
-            <ListHeading
-              title="All Subscriptions"
-              onPress={() => router.push("/subscriptions")}
-            />
+            {loading || error ? (
+              <View className="mt-6">
+                <StatusView loading={loading} error={error} onRetry={refresh} rows={3} />
+              </View>
+            ) : !hasAny ? (
+              <View className="mt-6">
+                <EmptyState />
+              </View>
+            ) : (
+              <>
+                {upcoming.length > 0 ? (
+                  <View>
+                    <ListHeading title="Coming up" />
+                    <FlatList
+                      data={upcoming}
+                      keyExtractor={(item) => item.id}
+                      renderItem={({ item }) => <UpcomingSubscriptionCard {...item} />}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                    />
+                  </View>
+                ) : null}
+                <ListHeading
+                  title="Your subscriptions"
+                  onPress={subscriptions.length > HOME_LIST_LIMIT ? () => router.push("/subscriptions") : undefined}
+                />
+              </>
+            )}
           </>
         }
       />

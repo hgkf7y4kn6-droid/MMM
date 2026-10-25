@@ -71,6 +71,7 @@ export const components = {
     horizontalInset: 20,
     radius: 36,
     iconFrame: 48,
+    maxWidth: 440,
   },
 } as const;
 

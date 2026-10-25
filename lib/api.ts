@@ -63,7 +63,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       const body = await res.json();
       const detail = body?.detail;
       if (typeof detail === "string") message = detail;
-      else if (detail && typeof detail === "object") {
+      else if (Array.isArray(detail) && detail[0]?.msg) {
+        // Validation errors (422): the first problem, without Pydantic's prefix.
+        message = String(detail[0].msg).replace(/^Value error, /, "");
+        code = "invalid";
+      } else if (detail && typeof detail === "object") {
         message = detail.message ?? message;
         code = detail.code ?? null;
       }
@@ -72,6 +76,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     throw new ApiError(message, res.status, code);
   }
+  if (res.status === 204) return null as T;
   return (await res.json()) as T;
 }
 
@@ -107,6 +112,12 @@ export const api = {
       body: JSON.stringify({ success_url: returnUrl, cancel_url: returnUrl }),
     }),
   syncBilling: () => request<Entitlement>("/api/billing/sync", { method: "POST" }),
+  subscriptions: () => request<SubscriptionsResponse>("/api/subscriptions"),
+  createSubscription: (body: SubscriptionInput) =>
+    request<Subscription>("/api/subscriptions", { method: "POST", body: JSON.stringify(body) }),
+  updateSubscription: (id: string, body: SubscriptionInput) =>
+    request<Subscription>(`/api/subscriptions/${enc(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteSubscription: (id: string) => request<null>(`/api/subscriptions/${enc(id)}`, { method: "DELETE" }),
 };
 
 export type PortfolioSource = "linked" | "demo";

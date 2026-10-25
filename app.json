@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mmm",
+    "name": "Mindful Money",
     "slug": "mmm",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,11 +9,14 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0a0a10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -23,7 +26,13 @@
     },
     "web": {
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png",
+      "name": "Mindful Money",
+      "shortName": "Mindful Money",
+      "description": "Track every subscription, research dividend growth stocks and measure your portfolio against the S&P 500.",
+      "themeColor": "#a8791f",
+      "backgroundColor": "#f7f4ec",
+      "lang": "en"
     },
     "plugins": [
       "expo-router",
@@ -31,11 +40,11 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#f7f4ec",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#0a0a10"
           }
         }
       ],
@@ -51,7 +60,10 @@
             "./assets/fonts/PlusJakartaSans-Light.ttf"
           ]
         }
-      ]
+      ],
+      "@clerk/expo",
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -61,6 +73,7 @@
       "eas": {
         "projectId": "c8e915eb-f797-4bc5-a447-4b9c88b5d052"
       }
-    }
+    },
+    "description": "Track every subscription, research dividend growth stocks and measure your portfolio against the S&P 500."
   }
 }

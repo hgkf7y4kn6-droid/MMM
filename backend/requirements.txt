@@ -8,3 +8,4 @@ cryptography==45.0.7
 python-dotenv==1.0.1
 celery[redis]==5.4.0
 plaid-python==46.0.0
+python-dateutil>=2.9

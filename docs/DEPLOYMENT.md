@@ -17,7 +17,16 @@
 | `mmm-web` | Static site | `npm ci && npx expo export --platform web` | publish `dist`; add a rewrite rule `/*` → `/index.html` (the web app is a single-page app) |
 
 `EXPO_PUBLIC_API_URL` on `mmm-web` is read at **build** time, so redeploy the site after changing it. Add
-the site's URL to `ALLOWED_ORIGINS` on `mmm-api`. The API's own repo-root `package.json` is the Expo app,
+the site's URL to `ALLOWED_ORIGINS` on `mmm-api`.
+
+**Custom domain:** the web app is served at `mmm.richesdigitalventures.com` — a CNAME from `mmm` to
+`mmm-web-0p2b.onrender.com`, added under the static site's Settings → Custom Domains.
+
+**Sign-in:** the app uses the Riches Digital Ventures production Clerk instance (`clerk.richesdigitalventures.com`,
+shared with Riches Analytics). The publishable key is built into `constants/config.ts`; the API needs the same
+key in `CLERK_PUBLISHABLE_KEY` and `https://mmm.richesdigitalventures.com` in `CLERK_AUTHORIZED_PARTIES`.
+Production Clerk keys only work on the instance's domain and its subdomains, so the `onrender.com` URL shows
+the sign-in page but can't sign in. The API's own repo-root `package.json` is the Expo app,
 so a Node web service pointed at the repo root can't run anything; that's why the API is a Python service.
 
 ## Environment variables
@@ -38,9 +47,14 @@ so a Node web service pointed at the repo root can't run anything; that's why th
 Secrets belong in the host's secret store (e.g. Render → Environment), never in the repo or the app bundle.
 Only `EXPO_PUBLIC_*` values reach the client, and the only one is the API URL.
 
+**Database:** user data (tracked subscriptions, linked accounts) must live in Postgres. Without
+`DATABASE_URL` the API falls back to SQLite on the instance's disk, which Render wipes on every deploy and
+restart.
+
 ## Database migrations
 
-`Base.metadata.create_all()` creates missing tables at startup but never alters existing ones. For a
+`Base.metadata.create_all()` creates missing tables at startup (including `tracked_subscriptions`) but never
+alters existing ones. For a
 database created before this release:
 
 ```bash

@@ -19,7 +19,7 @@ import billing
 from auth import User, current_user
 from database import get_db
 from entitlements import FREE_FEATURES, PRO_FEATURES, resolve
-from models import Account, BillingEvent, InvestmentTransaction, PlaidItem, Subscription, Transaction, TransferEvent
+from models import Account, BillingEvent, InvestmentTransaction, PlaidItem, Subscription, TrackedSubscription, Transaction, TransferEvent
 
 log = logging.getLogger("account")
 router = APIRouter(prefix="/api", tags=["account"])
@@ -55,16 +55,17 @@ async def export(user: User = Depends(current_user), db: Session = Depends(get_d
     return {"exported_at": datetime.now(timezone.utc).isoformat(), "user_id": user.id,
             "linked_institution": _row(item) if item else None, "accounts": rows(Account),
             "transactions": rows(Transaction), "investment_transactions": rows(InvestmentTransaction),
-            "transfers": rows(TransferEvent), "subscription": _row(sub) if sub else None}
+            "transfers": rows(TransferEvent), "tracked_subscriptions": rows(TrackedSubscription),
+            "subscription": _row(sub) if sub else None}
 
 
 @router.delete("/me")
 async def delete_account(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """Deletes the caller's stored financial data and linked-account credential.
+    """Deletes the caller's stored financial data, tracked subscriptions and linked-account credential.
     The billing record is kept only as long as an active paid subscription
     needs it to be honored (cancel first to remove it); events are anonymized."""
     counts = {}
-    for model in (Transaction, InvestmentTransaction, Account, TransferEvent, PlaidItem):
+    for model in (Transaction, InvestmentTransaction, Account, TransferEvent, PlaidItem, TrackedSubscription):
         counts[model.__tablename__] = db.query(model).filter(model.user_id == user.id).delete()
     sub = db.get(Subscription, user.id)
     kept_subscription = bool(sub and resolve(user, db).status in ("active", "trialing", "grace"))
