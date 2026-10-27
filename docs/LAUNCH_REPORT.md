@@ -4,7 +4,7 @@
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit and API tests (115) | `cd backend && pip install -r requirements-dev.txt && pytest tests` | **115 passed** |
+| Backend unit and API tests (116, on SQLite and Postgres) | `cd backend && pip install -r requirements-dev.txt && pytest tests` | **116 passed** |
 | TypeScript | `npx tsc --noEmit` | clean |
 | Lint | `npx expo lint` | clean |
 | Web build | `npx expo export --platform web` | builds |
@@ -86,7 +86,7 @@ thousands of transactions; cache per user (invalidated on sync) if it grows.
   - Deleting data doesn't delete the Clerk account itself; DFS-Riches does this with `CLERK_SECRET_KEY` and
     it can be ported.
   - No error-reporting service is wired.
-  - No backup automation beyond Neon's built-in point-in-time restore.
+  - No backup automation beyond Supabase's built-in daily backups.
 
 ## Outstanding work (priority order)
 

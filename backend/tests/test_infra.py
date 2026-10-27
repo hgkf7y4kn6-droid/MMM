@@ -108,3 +108,18 @@ def test_entitlement_requires_known_feature():
     from entitlements import require_feature
     with pytest.raises(ValueError):
         require_feature("not-a-feature")
+
+
+# ---------------------------------------------------------------- database connection
+def test_supabase_connection_options():
+    from database import engine_options
+    session = engine_options("postgresql+psycopg://u:p@aws-0-us-east-2.pooler.supabase.com:5432/postgres")
+    assert session["connect_args"] == {"sslmode": "require"}
+    assert session["pool_pre_ping"] is True
+    txn = engine_options("postgresql+psycopg://u:p@aws-0-us-east-2.pooler.supabase.com:6543/postgres")
+    assert txn["connect_args"] == {"sslmode": "require", "prepare_threshold": None}
+    # An explicit sslmode in the URL wins; other Postgres hosts get no Supabase settings.
+    explicit = engine_options("postgresql+psycopg://u:p@aws-0-us-east-2.pooler.supabase.com:5432/postgres?sslmode=verify-full")
+    assert "sslmode" not in explicit["connect_args"]
+    assert engine_options("postgresql+psycopg://u:p@db.example.com:5432/app")["connect_args"] == {}
+    assert "poolclass" in engine_options("sqlite://")

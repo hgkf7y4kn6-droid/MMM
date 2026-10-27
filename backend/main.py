@@ -3,7 +3,7 @@ Mindful Money API
     pip install -r requirements.txt
     uvicorn main:app --reload
 
-Postgres (Neon) via DATABASE_URL, Redis for Celery, a Plaid app, Clerk for
+Postgres (Supabase) via DATABASE_URL, Redis for Celery, a Plaid app, Clerk for
 sign-in, Tiingo for market data, Stripe / RevenueCat for Pro. Everything but
 the database is optional in development; see .env.example and docs/DEPLOYMENT.md.
 
@@ -33,7 +33,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from database import engine, Base, get_db
+from database import engine, Base, get_db, lock_down_tables
 from models import PlaidItem, Account, Transaction, InvestmentTransaction, TransferEvent
 from crypto import encrypt
 from auth import User, current_user, is_admin, require_self, sign_in_required
@@ -57,6 +57,7 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("finance-api")
 
 Base.metadata.create_all(bind=engine)  # creates missing tables; column changes go through migrations/
+lock_down_tables()                      # Supabase: keep tables off its public REST API (database.py)
 sign_in_required()                      # refuses to start with REQUIRE_SIGN_IN=0 in production
 
 app = FastAPI(title="Mindful Money API", version="1.1.0")

@@ -6,7 +6,7 @@
 |---|---|---|
 | API | `uvicorn main:app --host 0.0.0.0 --port $PORT` from `backend/` | Python 3.12+, `pip install -r requirements.txt` |
 | Worker | `celery -A tasks worker --loglevel=info` from `backend/` | Redis (`REDIS_URL`) |
-| Database | Neon Postgres (`DATABASE_URL`) | Run the migrations below |
+| Database | Supabase Postgres (`DATABASE_URL`) | Tables are created and locked down at startup |
 | App | Expo / EAS builds; web via `npx expo export --platform web` | `EXPO_PUBLIC_API_URL` |
 
 ## Render
@@ -47,9 +47,18 @@ so a Node web service pointed at the repo root can't run anything; that's why th
 Secrets belong in the host's secret store (e.g. Render → Environment), never in the repo or the app bundle.
 Only `EXPO_PUBLIC_*` values reach the client, and the only one is the API URL.
 
-**Database:** user data (tracked subscriptions, linked accounts) must live in Postgres. Without
+**Database (Supabase):** user data (tracked subscriptions, linked accounts) must live in Postgres. Without
 `DATABASE_URL` the API falls back to SQLite on the instance's disk, which Render wipes on every deploy and
 restart.
+
+1. Create a Supabase project in a US East region (closest to the API in Render's Ohio region).
+2. Project → **Connect** → **Session pooler** → copy the URI and put the database password in it. Don't use
+   the "Direct connection" string: it's IPv6-only, and Render can't reach it. The transaction pooler (port
+   6543) also works; `database.py` turns off prepared statements for it.
+3. Set it as `DATABASE_URL` on `mmm-api`. On start the API creates its tables and turns on row-level
+   security for each one, so Supabase's public REST API (reachable with the project's anon key) returns no
+   rows. The API connects as the table owner, which RLS doesn't restrict. Don't add RLS policies for `anon`
+   or `authenticated`: the app never reads the database directly.
 
 ## Database migrations
 
@@ -63,8 +72,8 @@ psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.sql        
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.down.sql
 ```
 
-Before migrating, take a Neon branch (an instant copy) as the restore point. Neon's point-in-time restore
-covers accidental data loss afterwards. Before the next schema change, adopt Alembic: the SQL file shows
+Before migrating, take a backup (Supabase → Database → Backups). Supabase's daily backups, and point-in-time
+recovery on paid plans, cover accidental data loss afterwards. Before the next schema change, adopt Alembic: the SQL file shows
 the shape to start from.
 
 ## Billing setup
@@ -107,7 +116,7 @@ time, demo or stale flags, license note).
 
 ## Launch checklist
 
-1. Neon branch for restore → run migration 001.
+1. Supabase backup → run migration 001 (only for a database created before that release).
 2. Set production environment variables. Confirm `GET /` and `GET /api/health/db` respond.
 3. Configure Clerk (production instance) and add sign-in to the app (see LAUNCH_REPORT.md, outstanding work).
 4. Configure Stripe and/or RevenueCat. Send a test webhook and confirm the `billing_events` row and the
