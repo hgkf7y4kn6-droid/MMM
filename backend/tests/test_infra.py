@@ -27,9 +27,28 @@ def test_buckets_and_exemptions():
     assert guard.bucket("GET", "/") is None
 
 
-def test_client_ip_prefers_cloudflare():
+def test_client_ip_ignores_client_supplied_forwarding(monkeypatch):
+    monkeypatch.delenv("TRUST_CLOUDFLARE", raising=False)
+    monkeypatch.delenv("TRUSTED_PROXY_HOPS", raising=False)
+    # One trusted proxy appends the real address last; whatever the client put first is ignored.
+    assert guard.client_ip({"x-forwarded-for": "6.6.6.6, 1.1.1.1"}, "10.0.0.1") == "1.1.1.1"
+    assert guard.client_ip({"x-forwarded-for": "1.1.1.1"}, "10.0.0.1") == "1.1.1.1"
+    assert guard.client_ip({}, "2.2.2.2") == "2.2.2.2"
+    # A spoofed CF header is not believed unless the deployment says Cloudflare is in front.
+    assert guard.client_ip({"cf-connecting-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1"}, "2.2.2.2") == "1.1.1.1"
+    monkeypatch.setenv("TRUST_CLOUDFLARE", "1")
     assert guard.client_ip({"cf-connecting-ip": "9.9.9.9", "x-forwarded-for": "1.1.1.1"}, "2.2.2.2") == "9.9.9.9"
-    assert guard.client_ip({"x-forwarded-for": "1.1.1.1, 3.3.3.3"}, None) == "1.1.1.1"
+
+
+def test_rotating_forwarded_for_does_not_evade_the_limit(monkeypatch):
+    monkeypatch.delenv("TRUST_CLOUDFLARE", raising=False)
+    monkeypatch.delenv("RATE_LIMIT_WRITE", raising=False)
+    rl = guard.RateLimiter()
+    allowed = 0
+    for i in range(200):
+        ip = guard.client_ip({"x-forwarded-for": f"10.1.{i // 250}.{i % 250}, 7.7.7.7"}, "1.2.3.4")
+        allowed += rl.check(ip, "write") == 0
+    assert allowed == guard.LIMITS["write"]
 
 
 def test_stripe_signature():

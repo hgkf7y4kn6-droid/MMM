@@ -17,7 +17,9 @@ split-adjusted.
 Limitation: Plaid returns up to 24 months of investment transactions. A
 position opened before that window needs an opening balance (from
 /investments/holdings/get) to be valued; without one, its earlier history is
-treated as unavailable rather than guessed.
+treated as unavailable rather than guessed: a sale of shares the ledger never
+saw bought (and dividends on them) is left out and reported in the notes, so the
+rebuilt portfolio never holds a negative (phantom short) position.
 """
 from __future__ import annotations
 
@@ -37,6 +39,7 @@ def to_ledger(rows) -> tuple[list[LedgerTxn], list[str]]:
     cash_divs = [(r.ticker, r.date, abs(r.amount)) for r in rows
                  if (r.subtype or "").lower() in DIVIDEND and (r.type or "").lower() == "cash"]
     held: dict[str, float] = {}
+    untracked: set[str] = set()      # symbols with activity on shares bought before the history begins
     out: list[LedgerTxn] = []
     skipped = 0
     for r in rows:
@@ -64,9 +67,20 @@ def to_ledger(rows) -> tuple[list[LedgerTxn], list[str]]:
                 out.append(LedgerTxn(r.date, "buy", sym, qty, price, fee=fee, id=rid))
             held[sym] = held.get(sym, 0) + qty
         elif t == "sell" and sym and qty:
-            out.append(LedgerTxn(r.date, "sell", sym, qty, price, fee=fee, id=rid))
-            held[sym] = held.get(sym, 0) - qty
+            have = max(held.get(sym, 0), 0.0)
+            if qty > have + 1e-9:
+                untracked.add(sym)               # sold shares that were bought before the history
+                fee, qty = fee * (have / qty), have
+            if qty > 1e-9:
+                out.append(LedgerTxn(r.date, "sell", sym, qty, price, fee=fee, id=rid))
+                held[sym] = have - qty
+            else:
+                skipped += 1
         elif sub in DIVIDEND:
+            if sym and sub != "interest" and held.get(sym, 0) <= 1e-9:
+                untracked.add(sym)               # paid on shares the ledger doesn't know
+                skipped += 1
+                continue
             out.append(LedgerTxn(r.date, "dividend", sym if sub != "interest" else None, amount=abs(r.amount), id=rid))
         elif t == "fee":
             out.append(LedgerTxn(r.date, "fee", amount=abs(r.amount), id=rid))
@@ -80,6 +94,10 @@ def to_ledger(rows) -> tuple[list[LedgerTxn], list[str]]:
             out.append(LedgerTxn(r.date, "withdrawal", amount=abs(r.amount), id=rid))
         else:
             skipped += 1
+    if untracked:
+        notes.append("Shares bought before the available history (about 24 months) can't be valued yet. Sales of "
+                     f"those shares and dividends paid on them were left out for {', '.join(sorted(untracked))}, so "
+                     "results cover only what was bought within the history.")
     if skipped:
         notes.append(f"{skipped} brokerage transaction(s) of an unsupported kind (cancellations, options, "
                      "unmatched splits) weren't included.")

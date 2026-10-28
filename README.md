@@ -17,7 +17,7 @@ Live at **https://mmm.richesdigitalventures.com**.
   device.
 - **Dividend growth research** — revenue, EPS, free cash flow and dividend growth, ROIC and capital allocation,
   each figure with its source and formula (Pro for the deeper analyses).
-- **Portfolio** — income growth and time-weighted return against the S&P 500, from linked brokerage accounts.
+- **Portfolio** — income growth and time-weighted return against the S&P 500, from a brokerage account linked on the web app (up to 24 months of history; earlier positions are noted as not included) or a sample portfolio.
 - **Accounts** — sign-in is shared with Riches Analytics (one Riches Digital Ventures account). Export or delete
   your data any time from Settings.
 

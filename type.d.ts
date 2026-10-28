@@ -372,6 +372,16 @@ declare global {
     pricing: { display: string | null; web_checkout: boolean; in_app_purchase: boolean };
     features: { free: Record<string, string>; pro: Record<string, string> };
   };
+
+  /** The caller's linked brokerage account: is it current, and does it need the user? */
+  type PlaidStatus = {
+    linked: boolean;
+    status: "none" | "active" | "login_required" | "revoked" | "error";
+    needs_reconnect: boolean;
+    expiring_soon?: boolean;
+    last_synced_at: string | null;
+    configured: boolean;
+  };
 }
 
 export {};

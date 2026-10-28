@@ -7,8 +7,9 @@ Buckets, requests per client per minute (override with RATE_LIMIT_<NAME>):
     api     any other /api/ call               300
 Webhooks are exempt (providers retry on 429, and they're verified anyway).
 
-The client is CF-Connecting-IP / True-Client-IP when behind Cloudflare, else
-the first X-Forwarded-For hop, else the socket peer. Limits are per process;
+The client address comes from the proxy-appended end of X-Forwarded-For
+(TRUSTED_PROXY_HOPS, default 1), never from a value the client can set; see
+client_ip(). Limits are per process;
 run behind one instance or move the counters to Redis when scaling out.
 """
 from __future__ import annotations
@@ -43,13 +44,27 @@ def bucket(method: str, path: str) -> str | None:
     return "api"
 
 
+def _hops() -> int:
+    try:
+        return max(0, int(os.environ.get("TRUSTED_PROXY_HOPS", "1")))
+    except ValueError:
+        return 1
+
+
 def client_ip(headers: dict[str, str], peer: str | None) -> str:
-    for name in ("cf-connecting-ip", "true-client-ip"):
-        if headers.get(name):
-            return headers[name].strip()
-    xff = headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
+    """The address a request really came from. Forwarding headers are written by
+    whoever sent the request, so only what *our own* proxies appended is trusted:
+    each proxy adds the address it saw to the end of X-Forwarded-For, so the
+    entry TRUSTED_PROXY_HOPS from the end (default 1: the host's load balancer)
+    is the client; anything the client put in front of it is ignored.
+    TRUST_CLOUDFLARE=1 additionally honors CF-Connecting-IP, only safe when the
+    API can be reached through Cloudflare alone."""
+    if os.environ.get("TRUST_CLOUDFLARE") == "1" and headers.get("cf-connecting-ip"):
+        return headers["cf-connecting-ip"].strip()
+    hops = _hops()
+    chain = [p.strip() for p in headers.get("x-forwarded-for", "").split(",") if p.strip()]
+    if hops and len(chain) >= hops:
+        return chain[-hops]
     return peer or "unknown"
 
 

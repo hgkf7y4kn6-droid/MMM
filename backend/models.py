@@ -16,6 +16,11 @@ class PlaidItem(Base):
     item_id = Column(String, unique=True, nullable=False, index=True)
     access_token_encrypted = Column(Text, nullable=False)
     cursor = Column(Text, nullable=True)
+    # active | login_required | revoked | error -- what the app shows as "reconnect" (migrations/002)
+    status = Column(String, nullable=False, default="active", server_default="active")
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)      # last fully successful sync
+    last_attempt_at = Column(DateTime(timezone=True), nullable=True)     # last time a sync was started
+    last_error = Column(String, nullable=True)                           # Plaid error code, never a token
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

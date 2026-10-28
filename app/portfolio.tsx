@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from "react-native";
 import BackLink from "@/components/back-link";
 import DataBadge from "@/components/data-badge";
 import Disclaimer from "@/components/disclaimer";
+import LinkAccount from "@/components/portfolio/link-account";
 import IncomeCard from "@/components/portfolio/income-card";
 import PerformanceCard from "@/components/portfolio/performance-card";
 import ProLock from "@/components/pro-lock";
@@ -48,6 +49,7 @@ export default function Portfolio() {
             ]}
           />
         </View>
+        {source === "linked" ? <LinkAccount onChanged={overview.reload} /> : null}
         {o?.demo ? <DataBadge provenance={{ source: "demo", retrieved_at: "", demo: true, stale: false }} /> : null}
 
         {noPortfolio ? (

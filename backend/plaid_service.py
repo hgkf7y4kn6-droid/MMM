@@ -12,6 +12,7 @@ from plaid.model.investments_transactions_get_request_options import Investments
 from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
 from plaid.model.webhook_verification_key_get_request import WebhookVerificationKeyGetRequest
+from plaid.model.item_remove_request import ItemRemoveRequest
 
 # ── Transfer product ─────────────────────────────────────────────────────────
 # NOTE ON CONFIDENCE: Plaid's Transfer product (real ACH/RTP money movement,
@@ -61,17 +62,26 @@ TRANSACTIONS_DAYS_REQUESTED = 730
 
 
 def build_link_token_request(user_id: str) -> LinkTokenCreateRequest:
+    """Link for a brokerage: Investments is the product the app needs, so institutions
+    that only offer it (most brokerages) are listed; Transactions is requested where
+    available. PLAID_WEBHOOK_URL is where Plaid sends sync and login-expiry events
+    (https://<api>/api/plaid/webhook); without it Plaid sends none. PLAID_REDIRECT_URI
+    is needed for institutions that sign in through their own site (OAuth) and must
+    also be registered in the Plaid dashboard."""
+    extra = {}
+    if os.environ.get("PLAID_WEBHOOK_URL"):
+        extra["webhook"] = os.environ["PLAID_WEBHOOK_URL"]
+    if os.environ.get("PLAID_REDIRECT_URI"):
+        extra["redirect_uri"] = os.environ["PLAID_REDIRECT_URI"]
     return LinkTokenCreateRequest(
-        # "transfer" only needs to be here if you want Link itself to run
-        # Transfer-specific account verification during onboarding; the
-        # Transfer API calls below work off the same access_token regardless,
-        # as long as Transfer is enabled for your Plaid account.
-        products=[Products("transactions"), Products("investments")],
+        products=[Products("investments")],
+        optional_products=[Products("transactions")],
         client_name="Mindful Money",
         country_codes=[CountryCode("US")],
         language="en",
         user=LinkTokenCreateRequestUser(client_user_id=user_id),
         transactions=LinkTokenTransactions(days_requested=TRANSACTIONS_DAYS_REQUESTED),
+        **extra,
     )
 
 
@@ -166,3 +176,40 @@ def build_transfer_migrate_account_request(account_number: str, routing_number: 
 
 def build_webhook_key_request(key_id: str) -> WebhookVerificationKeyGetRequest:
     return WebhookVerificationKeyGetRequest(key_id=key_id)
+
+
+def build_item_remove_request(access_token: str) -> ItemRemoveRequest:
+    return ItemRemoveRequest(access_token=access_token)
+
+
+# Plaid error codes meaning the link can't be used until the user reconnects
+# (or has revoked access). Retrying them is pointless; the app shows "reconnect".
+ITEM_NEEDS_USER = {"ITEM_LOGIN_REQUIRED": "login_required", "USER_PERMISSION_REVOKED": "revoked",
+                   "ACCESS_NOT_GRANTED": "revoked", "ITEM_NOT_FOUND": "revoked"}
+
+
+def plaid_error_code(exc: Exception) -> str | None:
+    """The Plaid `error_code` carried by an ApiException body, if any."""
+    import json
+
+    try:
+        return json.loads(exc.body).get("error_code")
+    except Exception:
+        return None
+
+
+def revoke_item(access_token: str) -> bool:
+    """Ask Plaid to invalidate an access token (/item/remove). True when the
+    token is gone -- including when Plaid says the item no longer exists.
+    False when Plaid couldn't be reached or refused, so callers don't discard
+    a credential that is still live. Without Plaid configured there is
+    nothing to revoke."""
+    if client is None:
+        return True
+    try:
+        client.item_remove(build_item_remove_request(access_token))
+        return True
+    except plaid.ApiException as exc:
+        return plaid_error_code(exc) == "ITEM_NOT_FOUND"
+    except Exception:
+        return False

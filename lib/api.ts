@@ -99,8 +99,17 @@ export const api = {
     request<PerformanceResponse>(`/api/portfolio/performance?source=${source}`),
   portfolioIncome: (source: PortfolioSource, target: number) =>
     request<IncomeAnalysis>(`/api/portfolio/income?source=${source}&target=${target}`),
+  plaidStatus: () => request<PlaidStatus>("/api/plaid/status"),
+  plaidSync: () => request<{ status: string }>("/api/plaid/sync", { method: "POST" }),
+  plaidLinkToken: () => request<{ link_token: string }>("/api/plaid/create-link-token", { method: "POST" }),
+  plaidExchange: (publicToken: string) =>
+    request<{ status: string }>("/api/plaid/exchange-public-token", {
+      method: "POST",
+      body: JSON.stringify({ public_token: publicToken }),
+    }),
   exportMyData: () => request<Record<string, unknown>>("/api/me/export"),
-  deleteMyData: () => request<{ deleted: Record<string, number>; note: string | null }>("/api/me", { method: "DELETE" }),
+  deleteMyData: () =>
+    request<{ deleted: Record<string, number>; note: string | null; bank_link_revoked: boolean | null }>("/api/me", { method: "DELETE" }),
   checkout: (returnUrl: string) =>
     request<{ url: string }>("/api/billing/checkout", {
       method: "POST",

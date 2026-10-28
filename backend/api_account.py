@@ -11,12 +11,15 @@ import time
 from datetime import datetime, timezone
 
 import httpx
+from fastapi.concurrency import run_in_threadpool
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 import billing
+import plaid_service
 from auth import User, current_user
+from crypto import decrypt
 from database import get_db
 from entitlements import FREE_FEATURES, PRO_FEATURES, resolve
 from models import Account, BillingEvent, InvestmentTransaction, PlaidItem, Subscription, TrackedSubscription, Transaction, TransferEvent
@@ -61,9 +64,26 @@ async def export(user: User = Depends(current_user), db: Session = Depends(get_d
 
 @router.delete("/me")
 async def delete_account(user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """Deletes the caller's stored financial data, tracked subscriptions and linked-account credential.
+    """Deletes the caller's stored financial data, tracked subscriptions and linked-account credential
+    (revoking the bank link at Plaid first; if Plaid can't be reached nothing is deleted).
     The billing record is kept only as long as an active paid subscription
     needs it to be honored (cancel first to remove it); events are anonymized."""
+    item = db.get(PlaidItem, user.id)
+    bank_revoked = None
+    if item is not None:
+        # Revoke the bank credential at Plaid *before* forgetting it: once the row is
+        # gone the token can't be revoked, and it would stay live there.
+        try:
+            token = decrypt(item.access_token_encrypted)
+        except Exception:
+            token = None
+            log.error("couldn't decrypt the Plaid token for user %s; delete the item in Plaid's dashboard (%s)",
+                      user.id, item.item_id)
+        if token is not None:
+            bank_revoked = await run_in_threadpool(plaid_service.revoke_item, token)
+            if not bank_revoked:
+                raise HTTPException(status_code=502, detail="We couldn't disconnect your bank with Plaid, so "
+                                    "nothing was deleted. Please try again in a few minutes.")
     counts = {}
     for model in (Transaction, InvestmentTransaction, Account, TransferEvent, PlaidItem, TrackedSubscription):
         counts[model.__tablename__] = db.query(model).filter(model.user_id == user.id).delete()
@@ -73,7 +93,7 @@ async def delete_account(user: User = Depends(current_user), db: Session = Depen
         db.delete(sub)
     db.query(BillingEvent).filter(BillingEvent.user_id == user.id).update({"user_id": None})
     db.commit()
-    return {"deleted": counts, "subscription_kept": kept_subscription,
+    return {"deleted": counts, "bank_link_revoked": bank_revoked, "subscription_kept": kept_subscription,
             "note": "Cancel your subscription in Manage billing to remove it too." if kept_subscription else None}
 
 

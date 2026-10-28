@@ -35,7 +35,7 @@ from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db, lock_down_tables
 from models import PlaidItem, Account, Transaction, InvestmentTransaction, TransferEvent
-from crypto import encrypt
+from crypto import decrypt, encrypt
 from auth import User, current_user, is_admin, require_self, sign_in_required
 import api_account
 import api_portfolio
@@ -51,6 +51,8 @@ from tasks import (
     sync_accounts_task,
     sync_investment_transactions_task,
     scrape_esg_data_task,
+    enqueue,
+    resync_if_stale,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -145,18 +147,30 @@ async def exchange_public_token(payload: PublicTokenExchangeRequest, db: Session
         if item is None:
             item = PlaidItem(user_id=user_id)
             db.add(item)
+        elif item.item_id != response["item_id"]:
+            # Relinking a different institution replaces the old link (one per user).
+            # Revoke the old token at Plaid, and drop what it synced so the two
+            # institutions' histories can't be mixed into one portfolio.
+            try:
+                revoked = plaid_service.revoke_item(decrypt(item.access_token_encrypted))
+            except Exception:
+                revoked = False
+            if not revoked:
+                log.warning("couldn't revoke replaced Plaid item %s for user %s; remove it in the Plaid dashboard",
+                            item.item_id, user_id)
+            for model in (Transaction, InvestmentTransaction, Account):
+                db.query(model).filter(model.user_id == user_id).delete()
         item.item_id = response["item_id"]
         item.access_token_encrypted = encrypt(response["access_token"])  # never store plaintext
         item.cursor = None
+        item.status, item.last_error, item.last_synced_at, item.last_attempt_at = "active", None, None, None
         db.commit()
 
-        # Don't wait for the first webhook to fire — pull an initial snapshot
+        # Don't wait for the first webhook to fire -- pull an initial snapshot
         # right away so accounts/transactions/dividends show up immediately
-        # after the user finishes Plaid Link instead of after the next
-        # scheduled sync.
-        sync_accounts_task.delay(user_id)
-        sync_user_transactions_task.delay(user_id)
-        sync_investment_transactions_task.delay(user_id)
+        # after the user finishes Plaid Link.
+        for task in (sync_accounts_task, sync_user_transactions_task, sync_investment_transactions_task):
+            enqueue(task, user_id)
 
         return {"status": "success", "item_id": response["item_id"]}
     except plaid.ApiException as e:
@@ -219,16 +233,57 @@ async def plaid_webhook(
         return {"status": "received"}
 
     if webhook_type == "TRANSACTIONS" and webhook_code == "SYNC_UPDATES_AVAILABLE":
-        sync_user_transactions_task.delay(item.user_id)
+        enqueue(sync_user_transactions_task, item.user_id)
     elif webhook_type == "INVESTMENTS_TRANSACTIONS":
         # Plaid fires DEFAULT_UPDATE as new investment transactions (including
         # dividend payouts) post; HISTORICAL_UPDATE once the initial backfill
         # finishes. Both mean "go re-pull and re-filter for dividends."
-        sync_investment_transactions_task.delay(item.user_id)
-    elif webhook_type == "ITEM" and webhook_code == "PENDING_EXPIRATION":
-        log.warning("Plaid item for user %s needs re-auth soon.", item.user_id)
+        enqueue(sync_investment_transactions_task, item.user_id)
+    elif webhook_type == "ITEM":
+        # The link needs the user: expiring soon, login expired, access revoked.
+        if webhook_code == "PENDING_EXPIRATION":
+            item.last_error = "PENDING_EXPIRATION"        # still works; the app asks to reconnect soon
+        elif webhook_code == "USER_PERMISSION_REVOKED" or webhook_code == "USER_ACCOUNT_REVOKED":
+            item.status, item.last_error = "revoked", webhook_code
+        elif webhook_code == "ERROR":
+            code = (payload.get("error") or {}).get("error_code")
+            item.status = plaid_service.ITEM_NEEDS_USER.get(code, "error")
+            item.last_error = code or "ERROR"
+        elif webhook_code == "LOGIN_REPAIRED":
+            item.status, item.last_error = "active", None
+            enqueue(sync_investment_transactions_task, item.user_id)
+        db.commit()
+        log.warning("Plaid item webhook %s for user %s -> %s", webhook_code, item.user_id, item.status)
 
     return {"status": "received"}
+
+
+@app.get("/api/plaid/status")
+async def plaid_status(db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Is the caller's linked account healthy, and when did its data last update?
+    `needs_reconnect` is true when only the user can fix it (expired login, revoked access)."""
+    item = db.query(PlaidItem).filter(PlaidItem.user_id == user.id).first()
+    if item is None:
+        return {"linked": False, "status": "none", "needs_reconnect": False, "last_synced_at": None,
+                "configured": plaid_service.client is not None}
+    resync_if_stale(db, item)
+    return {"linked": True, "status": item.status, "needs_reconnect": item.status in ("login_required", "revoked"),
+            "expiring_soon": item.last_error == "PENDING_EXPIRATION",
+            "last_synced_at": item.last_synced_at.isoformat() if item.last_synced_at else None,
+            "configured": plaid_service.client is not None}
+
+
+@app.post("/api/plaid/sync")
+async def plaid_sync_now(db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Refresh now (the app's "Sync" button). Idempotent: syncs are upserts by Plaid's ids."""
+    item = db.query(PlaidItem).filter(PlaidItem.user_id == user.id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="No linked account.")
+    if item.status in ("login_required", "revoked"):
+        raise HTTPException(status_code=409, detail="Reconnect your account first.")
+    for task in (sync_accounts_task, sync_user_transactions_task, sync_investment_transactions_task):
+        enqueue(task, user.id)
+    return {"status": "queued"}
 
 
 # ------------------------------------------------------------------
@@ -400,6 +455,13 @@ class TransferMigrateBody(BaseModel):
     legal_name: str
 
 
+def _transfers_gate(user: User = Depends(current_user)) -> None:
+    """Moving money isn't part of the product: these routes answer 404 unless an
+    operator turns them on (ENABLE_TRANSFERS=1) *and* the caller is an admin."""
+    if os.environ.get("ENABLE_TRANSFERS") != "1" or not is_admin(user):
+        raise HTTPException(status_code=404, detail="Not found.")
+
+
 def _get_access_token_for_user(user_id: str, db: Session) -> str:
     from crypto import decrypt
     item = db.query(PlaidItem).filter(PlaidItem.user_id == user_id).first()
@@ -419,7 +481,7 @@ def _owned_account(db: Session, user_id: str, account_id: str) -> None:
         raise HTTPException(status_code=404, detail="Account not found.")
 
 
-@app.post("/api/transfer/authorize")
+@app.post("/api/transfer/authorize", dependencies=[Depends(_transfers_gate)])
 async def authorize_transfer(payload: TransferAuthorizeRequest, db: Session = Depends(get_db),
                              user: User = Depends(current_user)):
     user_id = _caller(payload.user_id, user)
@@ -446,7 +508,7 @@ async def authorize_transfer(payload: TransferAuthorizeRequest, db: Session = De
         raise HTTPException(status_code=400, detail="Transfer authorization failed.")
 
 
-@app.post("/api/transfer/create")
+@app.post("/api/transfer/create", dependencies=[Depends(_transfers_gate)])
 async def create_transfer(payload: TransferCreateBody, db: Session = Depends(get_db),
                           user: User = Depends(current_user)):
     user_id = _caller(payload.user_id, user)
@@ -455,6 +517,9 @@ async def create_transfer(payload: TransferCreateBody, db: Session = Depends(get
     if not authorization or authorization.user_id != user_id or authorization.kind != "authorization" \
             or authorization.status != "approved":
         raise HTTPException(status_code=400, detail="That transfer wasn't authorized for this account.")
+    if (authorization.account_id, authorization.amount, authorization.type, authorization.network) != \
+            (payload.account_id, payload.amount, payload.type, payload.network):
+        raise HTTPException(status_code=400, detail="The transfer doesn't match what was authorized.")
     access_token = _get_access_token_for_user(user_id, db)
     try:
         req = plaid_service.build_transfer_create_request(
@@ -475,7 +540,7 @@ async def create_transfer(payload: TransferCreateBody, db: Session = Depends(get
         raise HTTPException(status_code=400, detail="Transfer could not be created.")
 
 
-@app.get("/api/transfer/capabilities/{account_id}")
+@app.get("/api/transfer/capabilities/{account_id}", dependencies=[Depends(_transfers_gate)])
 async def get_transfer_capabilities(account_id: str, transfer_type: str = "credit", network: str = "ach",
                                     db: Session = Depends(get_db), user: User = Depends(current_user)):
     _owned_account(db, user.id, account_id)
@@ -488,7 +553,7 @@ async def get_transfer_capabilities(account_id: str, transfer_type: str = "credi
         raise HTTPException(status_code=400, detail="Could not check transfer capabilities for this account.")
 
 
-@app.post("/api/transfer/migrate-account")
+@app.post("/api/transfer/migrate-account", dependencies=[Depends(_transfers_gate)])
 async def migrate_transfer_account(payload: TransferMigrateBody, db: Session = Depends(get_db),
                                    user: User = Depends(current_user)):
     """Brings a pre-verified account/routing number pair over from another
@@ -500,12 +565,12 @@ async def migrate_transfer_account(payload: TransferMigrateBody, db: Session = D
             payload.account_number, payload.routing_number, payload.account_type, payload.legal_name,
         )
         user_id = _caller(payload.user_id, user)
+        if db.query(PlaidItem).filter(PlaidItem.user_id == user_id).first():
+            raise HTTPException(status_code=409, detail="This user already has a linked account; it isn't replaced.")
         response = await run_in_threadpool(_plaid().transfer_migrate_account, req)
 
-        item = db.query(PlaidItem).filter(PlaidItem.user_id == user_id).first()
-        if item is None:
-            item = PlaidItem(user_id=user_id)
-            db.add(item)
+        item = PlaidItem(user_id=user_id)
+        db.add(item)
         item.item_id = response["request_id"]  # migrate_account doesn't return a conventional item_id; request_id anchors this row
         item.access_token_encrypted = encrypt(response["access_token"])
         db.commit()

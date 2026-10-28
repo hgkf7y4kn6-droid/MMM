@@ -5,7 +5,7 @@
 | Piece | Runs as | Needs |
 |---|---|---|
 | API | `uvicorn main:app --host 0.0.0.0 --port $PORT` from `backend/` | Python 3.12+, `pip install -r requirements.txt` |
-| Worker | `celery -A tasks worker --loglevel=info` from `backend/` | Redis (`REDIS_URL`) |
+| Worker (optional) | `celery -A tasks worker -B --loglevel=info` from `backend/` (`-B` adds the 6-hourly fallback sync) | Redis (`REDIS_URL`). Without `REDIS_URL` the API runs syncs itself in a background thread, and refreshes a stale linked account when the portfolio is opened, so no paid worker is required to start. |
 | Database | Supabase Postgres (`DATABASE_URL`) | Tables are created and locked down at startup |
 | App | Expo / EAS builds; web via `npx expo export --platform web` | `EXPO_PUBLIC_API_URL` |
 
@@ -29,14 +29,35 @@ Production Clerk keys only work on the instance's domain and its subdomains, so 
 the sign-in page but can't sign in. The API's own repo-root `package.json` is the Expo app,
 so a Node web service pointed at the repo root can't run anything; that's why the API is a Python service.
 
+### Why sign-in and password emails don't say "Mindful Money"
+
+Sign-in codes and password emails are sent by Clerk, not by this repo, and the Riches Digital Ventures Clerk
+instance is shared by every app that uses it. Their sender name, subject and body come from the instance's
+**Customization → Emails** templates and its **Application name** (Clerk dashboard → Configure → Customization), which
+apply to all apps at once. If those still name DFS Riches, the emails will say so whichever app asked for them.
+Fix, in the Clerk dashboard (no code change):
+
+1. Set the instance's application name to a neutral brand ("Riches Digital Ventures") and edit the *Verification code*
+   and *Reset password code* templates to use `{{app.name}}` instead of a product name.
+2. For emails that say Mindful Money specifically, the app needs its **own Clerk instance** (own users, own
+   publishable key and `CLERK_PUBLISHABLE_KEY`). That ends single sign-on with Riches Analytics, so decide that first.
+
 ## Environment variables
 
 `backend/.env.example` lists all of them with comments. For production (`APP_ENV=production`):
 
 - **Required:** `DATABASE_URL`, `CLERK_PUBLISHABLE_KEY`, `ALLOWED_ORIGINS` (the web app origin),
   `CLERK_AUTHORIZED_PARTIES`.
-- **Bank linking:** `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV=production`, `FERNET_KEY`. Without Plaid,
-  link routes answer 503 and everything else runs.
+- **Bank linking:** `PLAID_CLIENT_ID`, `PLAID_SECRET`, `PLAID_ENV=production`, `FERNET_KEY`, and
+  `PLAID_WEBHOOK_URL=https://<api>/api/plaid/webhook` (without it Plaid sends no sync or login-expiry events).
+  Institutions that sign in on their own site (OAuth, which includes several large brokerages) also need
+  `PLAID_REDIRECT_URI` = the web app's `/portfolio` URL, registered in Plaid's dashboard. Without Plaid, link
+  routes answer 503 and the app hides the connect card. Linking runs on the web app; the iOS/Android apps point
+  to it until Plaid's native SDK is added in a development build.
+- **Rate limiting:** `TRUSTED_PROXY_HOPS` (default 1, right for Render alone; 2 behind Cloudflare + Render). Set
+  `TRUST_CLOUDFLARE=1` only if the API is reachable through Cloudflare alone.
+- **Off unless needed:** `ENABLE_TRANSFERS=1` turns on the Plaid money-movement routes for admins. They are not
+  part of the product and need legal review first.
 - **Market data:** `TIINGO_API_KEY`, which needs a commercial plan for redistribution to end users and the
   fundamentals add-on for statements. Also `SP500_AGGREGATES_FILE`, a licensed benchmark dataset.
 - **Pro:** `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `BILLING_RETURN_URLS`,
@@ -68,7 +89,9 @@ database created before this release:
 
 ```bash
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.sql        # idempotent
-# rollback:
+psql "$DATABASE_URL" -f backend/migrations/002_plaid_sync_status.sql            # linked-account sync status
+# rollback (newest first):
+psql "$DATABASE_URL" -f backend/migrations/002_plaid_sync_status.down.sql
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.down.sql
 ```
 
@@ -107,7 +130,7 @@ Stripe directly, for a webhook that never arrived.
 | Analyst consensus estimates | **None** | No licensed source is configured, so projected-growth rows say so. Add an `Estimates` provider (e.g. FactSet, S&P, Zacks) when one is licensed. |
 | S&P 500 aggregates (FCF and DPS per index share, ROIC) | `SP500_AGGREGATES_FILE` | **Needs a licensed dataset** (S&P DJI index data, or aggregates built from a licensed fundamentals universe point-in-time). Without it, live mode marks the benchmark unavailable. |
 | S&P 500 total return | SPY adjusted close via Tiingo | A total-return proxy, net of the 0.0945% expense ratio. Licensing the S&P 500 TR index directly would remove the tracking difference. |
-| Brokerage holdings and transactions | Plaid Investments | 24 months of history. Positions opened earlier need an opening balance from `/investments/holdings/get` (not yet implemented). |
+| Brokerage holdings and transactions | Plaid Investments | 24 months of history. Sales of shares bought earlier, and dividends on them, are left out and reported in the app's notes (no phantom short positions). A true opening balance from `/investments/holdings/get` is **not yet implemented**. |
 | Demo | `providers/demo.py` | Fictional companies, an illustrative benchmark and a sample portfolio, always labeled "Demo data · not market data" |
 
 Freshness: provider responses are cached (prices 6h, fundamentals 24h, search 24h). A failed refresh serves

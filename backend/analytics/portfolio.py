@@ -100,6 +100,7 @@ def replay(ledger: Ledger, calendar: list[date], prices: dict[str, dict[date, Pr
     out: list[DayState] = []
     i = 0
     funded, funded_n = 0.0, 0
+    oversold: set[str] = set()
     for idx, day in enumerate(days_cal):
         flow = div = 0.0
         while i < len(txns) and txns[i].day <= day:
@@ -137,11 +138,22 @@ def replay(ledger: Ledger, calendar: list[date], prices: dict[str, dict[date, Pr
                     cash -= cost
             elif t.type in ("sell", "transfer_out"):
                 qty, px = t.quantity or 0, t.price or 0
-                shares[t.symbol] = shares.get(t.symbol, 0) - qty
+                have = max(shares.get(t.symbol, 0.0), 0.0)
+                if qty > have + 1e-9:
+                    # Never go short: selling shares the ledger never saw bought would
+                    # price a position that doesn't exist. Only the held part counts.
+                    oversold.add(t.symbol)
+                    fee_scale = have / qty if qty else 0.0
+                    qty = have
+                else:
+                    fee_scale = 1.0
+                if qty <= 1e-9:
+                    continue
+                shares[t.symbol] = have - qty
                 if t.type == "transfer_out":
                     flow -= qty * px
                 else:
-                    cash += qty * px - t.fee
+                    cash += qty * px - t.fee * fee_scale
                 if abs(shares[t.symbol]) < 1e-9:
                     shares.pop(t.symbol)
         value = cash
@@ -161,6 +173,9 @@ def replay(ledger: Ledger, calendar: list[date], prices: dict[str, dict[date, Pr
     if funded_n:
         notes.append(f"{funded_n} purchase(s) had no recorded deposit; their cost (${funded:,.2f}) was treated as new "
                      "capital, not performance.")
+    if oversold:
+        notes.append(f"Sales of {', '.join(sorted(oversold))} exceeded the shares the ledger shows being bought and were "
+                     "limited to the shares held; add the earlier purchases or an opening balance for complete results.")
     if ledger.duplicates_dropped:
         notes.append(f"{ledger.duplicates_dropped} duplicate transaction(s) were ignored.")
     return Replay(out, funded, funded_n, notes, {s: q for s, q in shares.items()}, cash)

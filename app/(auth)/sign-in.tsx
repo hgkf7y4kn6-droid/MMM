@@ -124,7 +124,7 @@ export default function SignIn() {
       title={coding ? `Check your ${where}` : "Welcome back"}
       subtitle={
         coding
-          ? `Enter the code we sent to your ${where}.`
+          ? `Enter the code we sent to your ${where}. It comes from your Riches Digital Ventures account, which Mindful Money shares with our other apps, so the sender may not say Mindful Money.`
           : "Sign in to see your subscriptions, research and portfolio. No password? Leave it blank and we'll email you a code."
       }
       showFeatures={!coding}

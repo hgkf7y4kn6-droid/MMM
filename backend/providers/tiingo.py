@@ -90,6 +90,34 @@ def _split_adjusted_dividends(rows: list[dict]) -> list[tuple[date, float]]:
     return sorted(out)
 
 
+REGULAR_FREQUENCIES = (1, 2, 4, 12)      # payments a year: annual, semi-annual, quarterly, monthly
+SPECIAL_MULTIPLE = 1.8                   # a payment this many times the typical one is treated as a special
+
+
+def indicated_annual_dividend(divs: list[tuple[date, float]], end: date) -> float:
+    """Annual dividend per share implied by the *regular* payment schedule:
+    the latest regular payment x the payment frequency.
+
+    The frequency comes from the typical gap between payments (so five ex-dates
+    squeezed into 365 days, or a late one pushed out of the window, doesn't
+    change it), and a payment far above the typical amount is a special, not
+    part of the run-rate. With a single payment in the year the frequency is
+    unknowable and is taken as annual (an understatement for a new quarterly
+    payer, never an overstatement). No payment in 365 days gives 0."""
+    recent = [(d, a) for d, a in sorted(divs) if d > end - timedelta(days=365) and a > 0]
+    if not recent:
+        return 0.0
+    amounts = sorted(a for _, a in recent)
+    typical = amounts[len(amounts) // 2] if len(amounts) % 2 else (amounts[len(amounts) // 2 - 1] + amounts[len(amounts) // 2]) / 2
+    regular = [(d, a) for d, a in recent if len(recent) < 3 or a <= SPECIAL_MULTIPLE * typical] or recent
+    if len(regular) < 2:
+        return regular[-1][1]
+    gaps = sorted((b[0] - a[0]).days for a, b in zip(regular, regular[1:]))
+    gap = gaps[len(gaps) // 2] if len(gaps) % 2 else (gaps[len(gaps) // 2 - 1] + gaps[len(gaps) // 2]) / 2
+    freq = min(REGULAR_FREQUENCIES, key=lambda f: abs(365 / max(gap, 1) - f))
+    return regular[-1][1] * freq
+
+
 class TiingoProvider:
     name = "tiingo"
 
@@ -113,7 +141,7 @@ class TiingoProvider:
         divs = _split_adjusted_dividends(rows)
         cutoff = end - timedelta(days=365)
         trailing = [a for d, a in divs if d > cutoff]
-        indicated = trailing[-1] * len(trailing) if trailing else 0.0
+        indicated = indicated_annual_dividend(divs, end)
         return Quote(price=last["close"], as_of=last["date"][:10], trailing_dividends_12m=sum(trailing),
                      indicated_annual_dividend=indicated)
 
