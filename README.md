@@ -45,6 +45,7 @@ from a Clerk development instance.
 cd backend && pytest tests      # API tests
 npx tsc --noEmit                # types
 npx expo lint                   # lint
+npm test                        # app unit tests
 npx expo export --platform web  # web build
 ```
 

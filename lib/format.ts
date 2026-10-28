@@ -32,11 +32,19 @@ export function formatMoneyCompact(v: number | null | undefined, currency = "USD
   if (v == null || !Number.isFinite(v)) return DASH;
   if (Math.abs(v) < 0.5) v = 0;
   const abs = Math.abs(v);
-  const [div, suffix] =
-    abs >= 1e12 ? [1e12, "T"] : abs >= 1e9 ? [1e9, "B"] : abs >= 1e6 ? [1e6, "M"] : abs >= 1e3 ? [1e3, "K"] : [1, ""];
+  const units: [number, string][] = [[1e12, "T"], [1e9, "B"], [1e6, "M"], [1e3, "K"], [1, ""]];
+  const show = (i: number) => {
+    const [div, suffix] = units[i];
+    const scaled = abs / div;
+    const digits = div === 1 || scaled >= 99.95 ? 0 : 1;
+    return { text: scaled.toFixed(digits), rounded: Number(scaled.toFixed(digits)), suffix };
+  };
+  let i = Math.max(0, units.findIndex(([div]) => abs >= div || div === 1));
+  let out = show(i);
+  // 999_999 rounds to "1000" in thousands; step up a unit so it reads "$1.0M".
+  if (out.rounded >= 1000 && i > 0) out = show(--i);
   const symbol = currency === "USD" ? "$" : `${currency} `;
-  const digits = div === 1 || abs / div >= 100 ? 0 : 1;
-  return `${v < 0 ? MINUS : ""}${symbol}${(abs / div).toFixed(digits)}${suffix}`;
+  return `${v < 0 ? MINUS : ""}${symbol}${out.text}${out.suffix}`;
 }
 
 /** Full money: 1234.5 -> "$1,234.50". */

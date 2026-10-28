@@ -4,7 +4,8 @@
 
 | Suite | Command | Result |
 |---|---|---|
-| Backend unit and API tests (116, on SQLite and Postgres) | `cd backend && pip install -r requirements-dev.txt && pytest tests` | **116 passed** |
+| Backend unit and API tests (on SQLite and Postgres) | `cd backend && pip install -r requirements-dev.txt && pytest tests` | **149 passed** |
+| App unit tests (`lib/format.ts`) | `npm test` (Node's built-in runner, no extra dependency) | **9 passed** |
 | TypeScript | `npx tsc --noEmit` | clean |
 | Lint | `npx expo lint` | clean |
 | Web build | `npx expo export --platform web` | builds |
@@ -35,8 +36,7 @@ Bugs found and fixed while testing:
 - The comparable-holdings rule excluded positions bought on the year's first trading day.
 
 **Gaps:**
-- No JS unit tests: the app has no test runner. Adding `jest-expo` and testing `lib/format.ts` first is
-  recommended.
+- JS unit tests cover only `lib/format.ts`; components and screens have none (add `jest-expo` for those).
 - No device end-to-end runs (iOS/Android simulators weren't available here); the web build was checked
   instead.
 - The Tiingo and Plaid live paths aren't exercised (no credentials).
