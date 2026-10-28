@@ -34,7 +34,7 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from database import engine, Base, get_db, lock_down_tables
-from models import PlaidItem, Account, Transaction, InvestmentTransaction, TransferEvent
+from models import PlaidItem, Account, Holding, Transaction, InvestmentTransaction
 from crypto import decrypt, encrypt
 from auth import User, current_user, is_admin, require_self, sign_in_required
 import api_account
@@ -158,7 +158,7 @@ async def exchange_public_token(payload: PublicTokenExchangeRequest, db: Session
             if not revoked:
                 log.warning("couldn't revoke replaced Plaid item %s for user %s; remove it in the Plaid dashboard",
                             item.item_id, user_id)
-            for model in (Transaction, InvestmentTransaction, Account):
+            for model in (Transaction, InvestmentTransaction, Holding, Account):
                 db.query(model).filter(model.user_id == user_id).delete()
         item.item_id = response["item_id"]
         item.access_token_encrypted = encrypt(response["access_token"])  # never store plaintext
@@ -410,172 +410,3 @@ async def get_scrape_result(task_id: str, user: User = Depends(current_user)):
     if not result.ready():
         return {"status": result.status}
     return {"status": "success", "result": result.result}
-
-
-# ------------------------------------------------------------------
-# 5. Transfer — move real money in/out of a linked account (ACH/RTP)
-#
-# Sequence is fixed by Plaid, not by this code: authorize -> create.
-# Skipping straight to create() will fail — authorization_id is required
-# and only comes from a successful (or at least completed) authorization
-# call, which is Plaid's real-time risk/NSF check on that specific transfer.
-#
-# plaid_service.client's method names below (transfer_authorization_create,
-# transfer_create, transfer_capabilities_get, transfer_migrate_account)
-# follow the SDK's snake_case-of-endpoint-path convention seen elsewhere in
-# this file (transactions_sync, investments_transactions_get) — verify they
-# exist on your installed plaid-python version, same as the request classes
-# imported in plaid_service.py.
-# ------------------------------------------------------------------
-
-class TransferAuthorizeRequest(BaseModel):
-    user_id: str | None = None      # legacy; must match the verified caller
-    account_id: str
-    type: str              # "credit" (transfer IN to the user) | "debit" (transfer OUT)
-    amount: str             # string, e.g. "25.00" — not a float, to avoid cent rounding errors
-    legal_name: str
-    network: str = "ach"
-    ach_class: str = "web"
-
-class TransferCreateBody(BaseModel):
-    user_id: str | None = None
-    account_id: str
-    authorization_id: str
-    amount: str
-    description: str
-    type: str
-    network: str = "ach"
-    ach_class: str = "web"
-
-class TransferMigrateBody(BaseModel):
-    user_id: str | None = None
-    account_number: str
-    routing_number: str
-    account_type: str = "checking"
-    legal_name: str
-
-
-def _transfers_gate(user: User = Depends(current_user)) -> None:
-    """Moving money isn't part of the product: these routes answer 404 unless an
-    operator turns them on (ENABLE_TRANSFERS=1) *and* the caller is an admin."""
-    if os.environ.get("ENABLE_TRANSFERS") != "1" or not is_admin(user):
-        raise HTTPException(status_code=404, detail="Not found.")
-
-
-def _get_access_token_for_user(user_id: str, db: Session) -> str:
-    from crypto import decrypt
-    item = db.query(PlaidItem).filter(PlaidItem.user_id == user_id).first()
-    if not item:
-        raise HTTPException(status_code=404, detail="No linked Plaid item for this user.")
-    return decrypt(item.access_token_encrypted)
-
-
-def _plain(value) -> str:
-    """Plaid's SDK returns enum-like model objects; store their string value."""
-    return str(getattr(value, "value", value))
-
-
-def _owned_account(db: Session, user_id: str, account_id: str) -> None:
-    """A transfer may only touch an account synced for this user."""
-    if not db.query(Account).filter(Account.account_id == account_id, Account.user_id == user_id).first():
-        raise HTTPException(status_code=404, detail="Account not found.")
-
-
-@app.post("/api/transfer/authorize", dependencies=[Depends(_transfers_gate)])
-async def authorize_transfer(payload: TransferAuthorizeRequest, db: Session = Depends(get_db),
-                             user: User = Depends(current_user)):
-    user_id = _caller(payload.user_id, user)
-    _owned_account(db, user_id, payload.account_id)
-    access_token = _get_access_token_for_user(user_id, db)
-    try:
-        req = plaid_service.build_transfer_authorization_request(
-            access_token, payload.account_id, payload.type, payload.amount,
-            payload.legal_name, payload.network, payload.ach_class,
-        )
-        response = await run_in_threadpool(_plaid().transfer_authorization_create, req)
-        auth = response["authorization"]
-
-        db.add(TransferEvent(
-            id=auth["id"], kind="authorization", user_id=user_id, account_id=payload.account_id,
-            type=payload.type, network=payload.network, amount=payload.amount,
-            status=_plain(auth["decision"]), decision_rationale=str(auth.get("decision_rationale")),
-        ))
-        db.commit()
-        return {"authorization_id": auth["id"], "decision": _plain(auth["decision"]),
-                "decision_rationale": str(auth.get("decision_rationale")) if auth.get("decision_rationale") else None}
-    except plaid.ApiException as e:
-        log.warning("transfer authorization failed: %s", e)
-        raise HTTPException(status_code=400, detail="Transfer authorization failed.")
-
-
-@app.post("/api/transfer/create", dependencies=[Depends(_transfers_gate)])
-async def create_transfer(payload: TransferCreateBody, db: Session = Depends(get_db),
-                          user: User = Depends(current_user)):
-    user_id = _caller(payload.user_id, user)
-    _owned_account(db, user_id, payload.account_id)
-    authorization = db.get(TransferEvent, payload.authorization_id)
-    if not authorization or authorization.user_id != user_id or authorization.kind != "authorization" \
-            or authorization.status != "approved":
-        raise HTTPException(status_code=400, detail="That transfer wasn't authorized for this account.")
-    if (authorization.account_id, authorization.amount, authorization.type, authorization.network) != \
-            (payload.account_id, payload.amount, payload.type, payload.network):
-        raise HTTPException(status_code=400, detail="The transfer doesn't match what was authorized.")
-    access_token = _get_access_token_for_user(user_id, db)
-    try:
-        req = plaid_service.build_transfer_create_request(
-            access_token, payload.account_id, payload.authorization_id, payload.amount,
-            payload.description, payload.type, payload.network, payload.ach_class,
-        )
-        response = await run_in_threadpool(_plaid().transfer_create, req)
-        transfer = response["transfer"]
-
-        db.add(TransferEvent(
-            id=transfer["id"], kind="transfer", user_id=user_id, account_id=payload.account_id,
-            type=payload.type, network=payload.network, amount=payload.amount, status=_plain(transfer["status"]),
-        ))
-        db.commit()
-        return {"transfer_id": transfer["id"], "status": _plain(transfer["status"])}
-    except plaid.ApiException as e:
-        log.warning("transfer create failed: %s", e)
-        raise HTTPException(status_code=400, detail="Transfer could not be created.")
-
-
-@app.get("/api/transfer/capabilities/{account_id}", dependencies=[Depends(_transfers_gate)])
-async def get_transfer_capabilities(account_id: str, transfer_type: str = "credit", network: str = "ach",
-                                    db: Session = Depends(get_db), user: User = Depends(current_user)):
-    _owned_account(db, user.id, account_id)
-    try:
-        req = plaid_service.build_transfer_capabilities_request(account_id, transfer_type, network)
-        response = await run_in_threadpool(_plaid().transfer_capabilities_get, req)
-        return response.to_dict() if hasattr(response, "to_dict") else dict(response)
-    except plaid.ApiException as e:
-        log.warning("transfer capabilities check failed: %s", e)
-        raise HTTPException(status_code=400, detail="Could not check transfer capabilities for this account.")
-
-
-@app.post("/api/transfer/migrate-account", dependencies=[Depends(_transfers_gate)])
-async def migrate_transfer_account(payload: TransferMigrateBody, db: Session = Depends(get_db),
-                                   user: User = Depends(current_user)):
-    """Brings a pre-verified account/routing number pair over from another
-    processor. Returns a brand-new Plaid access_token — stored exactly like
-    one from item_public_token_exchange (encrypted, as a PlaidItem row),
-    since it's just as much a live credential to that account."""
-    try:
-        req = plaid_service.build_transfer_migrate_account_request(
-            payload.account_number, payload.routing_number, payload.account_type, payload.legal_name,
-        )
-        user_id = _caller(payload.user_id, user)
-        if db.query(PlaidItem).filter(PlaidItem.user_id == user_id).first():
-            raise HTTPException(status_code=409, detail="This user already has a linked account; it isn't replaced.")
-        response = await run_in_threadpool(_plaid().transfer_migrate_account, req)
-
-        item = PlaidItem(user_id=user_id)
-        db.add(item)
-        item.item_id = response["request_id"]  # migrate_account doesn't return a conventional item_id; request_id anchors this row
-        item.access_token_encrypted = encrypt(response["access_token"])
-        db.commit()
-
-        return {"status": "success", "account_id": response["account_id"]}
-    except plaid.ApiException as e:
-        log.warning("transfer account migration failed: %s", e)
-        raise HTTPException(status_code=400, detail="Account migration failed.")

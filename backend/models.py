@@ -88,6 +88,21 @@ class InvestmentTransaction(Base):
     fees = Column(Float, nullable=True)
 
 
+class Holding(Base):
+    """Shares held now, per account and security, from /investments/holdings/get
+    (replaced wholesale on every investment sync). The transaction history only
+    reaches back about 24 months, so these are the anchor that tells the ledger how
+    many shares were already held when its history begins."""
+    __tablename__ = "holdings"
+
+    user_id = Column(String, primary_key=True)
+    account_id = Column(String, primary_key=True)
+    security_id = Column(String, primary_key=True)
+    ticker = Column(String, nullable=True, index=True)
+    quantity = Column(Float, nullable=False)
+    as_of = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class TransferEvent(Base):
     """Audit trail for the Plaid Transfer product — every authorization
     decision and every transfer actually created, regardless of outcome.

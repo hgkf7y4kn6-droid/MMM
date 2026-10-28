@@ -22,7 +22,7 @@ from auth import User, current_user
 from crypto import decrypt
 from database import get_db
 from entitlements import FREE_FEATURES, PRO_FEATURES, resolve
-from models import Account, BillingEvent, InvestmentTransaction, PlaidItem, Subscription, TrackedSubscription, Transaction, TransferEvent
+from models import Account, Holding, BillingEvent, InvestmentTransaction, PlaidItem, Subscription, TrackedSubscription, Transaction, TransferEvent
 
 log = logging.getLogger("account")
 router = APIRouter(prefix="/api", tags=["account"])
@@ -56,7 +56,7 @@ async def export(user: User = Depends(current_user), db: Session = Depends(get_d
     item = db.get(PlaidItem, user.id)
     sub = db.get(Subscription, user.id)
     return {"exported_at": datetime.now(timezone.utc).isoformat(), "user_id": user.id,
-            "linked_institution": _row(item) if item else None, "accounts": rows(Account),
+            "linked_institution": _row(item) if item else None, "accounts": rows(Account), "holdings": rows(Holding),
             "transactions": rows(Transaction), "investment_transactions": rows(InvestmentTransaction),
             "transfers": rows(TransferEvent), "tracked_subscriptions": rows(TrackedSubscription),
             "subscription": _row(sub) if sub else None}
@@ -85,7 +85,7 @@ async def delete_account(user: User = Depends(current_user), db: Session = Depen
                 raise HTTPException(status_code=502, detail="We couldn't disconnect your bank with Plaid, so "
                                     "nothing was deleted. Please try again in a few minutes.")
     counts = {}
-    for model in (Transaction, InvestmentTransaction, Account, TransferEvent, PlaidItem, TrackedSubscription):
+    for model in (Transaction, InvestmentTransaction, Holding, Account, TransferEvent, PlaidItem, TrackedSubscription):
         counts[model.__tablename__] = db.query(model).filter(model.user_id == user.id).delete()
     sub = db.get(Subscription, user.id)
     kept_subscription = bool(sub and resolve(user, db).status in ("active", "trialing", "grace"))

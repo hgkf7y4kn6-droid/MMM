@@ -121,7 +121,10 @@ def replay(ledger: Ledger, calendar: list[date], prices: dict[str, dict[date, Pr
                 if t.symbol in shares and t.ratio:
                     shares[t.symbol] *= t.ratio
             elif t.type in ("buy", "reinvest", "transfer_in"):
-                qty, px = t.quantity or 0, t.price or 0
+                qty, px = t.quantity or 0, t.price
+                if px is None:        # an opening balance: valued at the first available close
+                    px = next((pp.close for d, pp in sorted(prices.get(t.symbol, {}).items()) if d >= day), 0.0)
+                px = px or 0
                 shares[t.symbol] = shares.get(t.symbol, 0) + qty
                 if t.type == "transfer_in":
                     flow += qty * px

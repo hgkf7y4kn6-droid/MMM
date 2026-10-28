@@ -122,23 +122,13 @@ def test_raise_cut_monthly_annual_and_none():
     assert indicated_annual_dividend([], END) == 0.0
 
 
-# ------------------------------------------------------------ transfers are off
+# ------------------------------------------------------------ no money movement
 @pytest.mark.parametrize("method,path", [("post", "/api/transfer/authorize"), ("post", "/api/transfer/create"),
                                          ("post", "/api/transfer/migrate-account"),
                                          ("get", "/api/transfer/capabilities/acc")])
-def test_transfer_routes_are_off_by_default_even_for_admins(monkeypatch, method, path):
+def test_money_movement_routes_do_not_exist(monkeypatch, method, path):
     monkeypatch.setenv("ADMIN_USER_IDS", "root")
-    monkeypatch.delenv("ENABLE_TRANSFERS", raising=False)
-    for uid in ("alice", "root"):
-        assert getattr(client_as(uid), method)(path, **({"json": {}} if method == "post" else {})).status_code == 404
-
-
-def test_transfer_routes_need_flag_and_admin(monkeypatch):
-    monkeypatch.setenv("ADMIN_USER_IDS", "root")
-    monkeypatch.setenv("ENABLE_TRANSFERS", "1")
-    assert client_as("alice").get("/api/transfer/capabilities/acc").status_code == 404
-    # An admin gets past the gate (then fails on ownership of the account, not on the route).
-    assert client_as("root").get("/api/transfer/capabilities/acc").status_code == 404
+    assert getattr(client_as("root"), method)(path, **({"json": {}} if method == "post" else {})).status_code == 404
 
 
 # ------------------------------------------------------------ revoking the bank link
@@ -311,3 +301,85 @@ def test_enqueue_runs_in_process_without_a_worker(monkeypatch):
         if t is not threading.main_thread() and t.daemon:
             t.join(2)
     assert ran == [("alice",)]
+
+
+# ------------------------------------------------------------ opening balances from holdings
+def test_opening_balance_recovers_shares_held_before_the_history():
+    rows = [row(1, date(2025, 3, 3), "cash", "dividend", "AAA", -40),
+            row(2, date(2025, 4, 1), "sell", "sell", "AAA", -1000, -20, 50),
+            row(3, date(2025, 5, 1), "buy", "buy", "BBB", 1000, 10, 100)]
+    txns, notes = to_ledger(rows, {"AAA": 80.0, "BBB": 10.0})
+    opening = [t for t in txns if t.id and t.id.startswith("opening-")]
+    assert [(t.symbol, t.quantity, t.price, t.day) for t in opening] == [("AAA", 100.0, None, date(2025, 3, 2))]
+    assert [t.type for t in txns if t.type == "dividend"] == ["dividend"]       # kept: the shares are known now
+    assert [t.quantity for t in txns if t.type == "sell"] == [20]               # whole sale kept
+    assert not any("can't be valued" in n for n in notes) and any("opening balance" in n for n in notes)
+
+
+def test_holdings_that_match_the_history_add_no_opening():
+    rows = [row(1, date(2025, 1, 2), "buy", "buy", "AAA", 1000, 10, 100)]
+    txns, notes = to_ledger(rows, {"AAA": 10.0})
+    assert [t.type for t in txns] == ["buy"] and not notes
+
+
+def test_holdings_below_the_history_are_reported_not_forced():
+    rows = [row(1, date(2025, 1, 2), "buy", "buy", "AAA", 1000, 10, 100)]
+    txns, notes = to_ledger(rows, {"AAA": 4.0})
+    assert [t.type for t in txns] == ["buy"] and any("AAA" in n and "incomplete" in n for n in notes)
+
+
+def test_position_with_no_transactions_at_all_is_still_an_opening_balance():
+    txns, _ = to_ledger([row(1, date(2025, 1, 2), "buy", "buy", "BBB", 100, 1, 100)], {"BBB": 1.0, "CCC": 7.0})
+    assert [(t.symbol, t.quantity) for t in txns if t.id.startswith("opening-")] == [("CCC", 7.0)]
+
+
+def test_opening_balance_is_valued_at_the_close_and_is_not_performance():
+    cal = weekdays(date(2025, 1, 6), date(2025, 3, 31))
+    prices = {"AAA": {d: PricePoint(d, 100.0 + i, 100.0 + i) for i, d in enumerate(cal)}}
+    txns, _ = to_ledger([row(1, cal[3], "cash", "dividend", "AAA", -5)], {"AAA": 10.0})
+    rp = p.replay(Ledger.from_txns(txns), cal, prices)
+    first = rp.days[0]
+    assert first.flow == pytest.approx(10 * prices["AAA"][first.day].close)     # money in, not return
+    assert rp.final_shares == {"AAA": 10.0}
+    r = p.daily_returns(rp.days)       # day 1 return is price change plus dividend on the opening shares; the opening itself is no return
+    p0, p1 = prices["AAA"][first.day].close, prices["AAA"][rp.days[1].day].close
+    assert r[1] == pytest.approx((10 * p1 + 5) / (10 * p0) - 1)      # price change plus the $5 dividend
+
+
+def test_holdings_sync_replaces_the_snapshot(monkeypatch):
+    from models import Holding
+    link()
+    calls = {"n": 0}
+
+    def holdings(req):
+        calls["n"] += 1
+        qty = 10.0 if calls["n"] == 1 else 3.0
+        return {"securities": [{"security_id": "s1", "ticker_symbol": "aaa"},
+                               {"security_id": "s2", "ticker_symbol": "USD", "is_cash_equivalent": True}],
+                "holdings": [{"account_id": "a", "security_id": "s1", "quantity": qty},
+                             {"account_id": "a", "security_id": "s2", "quantity": 500}]}
+
+    monkeypatch.setattr(plaid_service, "client", Row(
+        investments_transactions_get=lambda req: {"securities": [], "investment_transactions": [],
+                                                  "total_investment_transactions": 0},
+        investments_holdings_get=holdings))
+    for expected in (10.0, 3.0):
+        tasks.sync_investment_transactions_task.run("alice")
+        db = SessionLocal()
+        rows = db.query(Holding).all()
+        assert [(h.ticker, h.quantity) for h in rows] == [("AAA", expected)]
+        db.close()
+
+
+def test_linked_portfolio_uses_holdings_for_the_opening_balance():
+    from models import Holding
+    db = SessionLocal()
+    db.add(InvestmentTransaction(investment_transaction_id="t1", account_id="a", user_id="alice", ticker="DEMO-LITE",
+                                 date=date(2024, 6, 3), amount=-500, type="sell", subtype="sell", quantity=-5,
+                                 price=100))
+    db.add(Holding(user_id="alice", account_id="a", security_id="s", ticker="DEMO-LITE", quantity=15))
+    db.commit()
+    db.close()
+    body = client_as("alice").get("/api/portfolio/overview").json()
+    assert [(h["symbol"], h["shares"]) for h in body["holdings"]] == [("DEMO-LITE", 15)]
+    assert any("opening balance" in n for n in body["notes"])

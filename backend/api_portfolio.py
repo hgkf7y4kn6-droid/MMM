@@ -25,7 +25,7 @@ from analytics.models import Ledger, LedgerTxn
 from auth import User, current_user
 from database import get_db
 from entitlements import Entitlement, require_feature
-from models import InvestmentTransaction
+from models import Holding, InvestmentTransaction
 from plaid_ledger import to_ledger
 from providers.base import ProviderUnavailable, SymbolNotFound
 from providers.demo import demo_ledger
@@ -77,7 +77,12 @@ def _load_ledger(source: str, user: User, db: Session) -> tuple[Ledger, list[str
     if source == "demo":
         return Ledger.from_txns(demo_ledger()), [], True
     rows = db.query(InvestmentTransaction).filter(InvestmentTransaction.user_id == user.id).all()
-    txns, notes = to_ledger(rows)
+    held: dict[str, float] = {}
+    holding_rows = db.query(Holding).filter(Holding.user_id == user.id).all()
+    for h in holding_rows:
+        held[h.ticker] = held.get(h.ticker, 0.0) + h.quantity
+    # No rows means holdings haven't synced yet (not "holds nothing"): history only, as before.
+    txns, notes = to_ledger(rows, held if holding_rows else None)
     return Ledger.from_txns(txns), notes, False
 
 

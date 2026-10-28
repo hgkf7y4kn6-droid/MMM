@@ -22,7 +22,7 @@ from celery import Celery
 
 from crypto import decrypt
 from database import SessionLocal
-from models import Account, InvestmentTransaction, PlaidItem, Transaction
+from models import Account, Holding, InvestmentTransaction, PlaidItem, Transaction
 
 log = logging.getLogger("tasks")
 
@@ -194,6 +194,24 @@ def sync_user_transactions_task(user_id: str) -> int:
         db.close()
 
 
+def _replace_holdings(db, user_id: str, resp) -> int:
+    """Swap the user's stored holdings for Plaid's current ones (same commit as the
+    transactions, so the two always describe the same moment). Securities without a
+    ticker (cash, some funds) can't be priced and are skipped."""
+    securities = {s["security_id"]: s for s in resp["securities"]}
+    db.query(Holding).filter(Holding.user_id == user_id).delete()
+    n = 0
+    for h in resp["holdings"]:
+        sec = securities.get(h["security_id"]) or {}
+        ticker = sec.get("ticker_symbol")
+        if not ticker or sec.get("is_cash_equivalent"):
+            continue
+        db.add(Holding(user_id=user_id, account_id=h["account_id"], security_id=h["security_id"],
+                       ticker=ticker.upper(), quantity=float(h["quantity"])))
+        n += 1
+    return n
+
+
 @celery_app.task(**RETRY)
 def sync_investment_transactions_task(user_id: str) -> int:
     """/investments/transactions/get for the last 24 months, paged by offset.
@@ -231,6 +249,8 @@ def sync_investment_transactions_task(user_id: str) -> int:
                 offset += len(txns)
                 if not txns:
                     break
+            _replace_holdings(db, user_id, plaid_service.client.investments_holdings_get(
+                plaid_service.build_holdings_request(token)))
             item.status, item.last_synced_at = "active", _now()
             if item.last_error != "PENDING_EXPIRATION":      # that warning lasts until the user reconnects
                 item.last_error = None

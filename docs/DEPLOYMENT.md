@@ -56,8 +56,7 @@ Fix, in the Clerk dashboard (no code change):
   to it until Plaid's native SDK is added in a development build.
 - **Rate limiting:** `TRUSTED_PROXY_HOPS` (default 1, right for Render alone; 2 behind Cloudflare + Render). Set
   `TRUST_CLOUDFLARE=1` only if the API is reachable through Cloudflare alone.
-- **Off unless needed:** `ENABLE_TRANSFERS=1` turns on the Plaid money-movement routes for admins. They are not
-  part of the product and need legal review first.
+- **No money movement:** the Plaid Transfer (ACH) routes were removed; adding them back needs legal review first.
 - **Market data:** `TIINGO_API_KEY`, which needs a commercial plan for redistribution to end users and the
   fundamentals add-on for statements. Also `SP500_AGGREGATES_FILE`, a licensed benchmark dataset.
 - **Pro:** `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `BILLING_RETURN_URLS`,
@@ -90,7 +89,9 @@ database created before this release:
 ```bash
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.sql        # idempotent
 psql "$DATABASE_URL" -f backend/migrations/002_plaid_sync_status.sql            # linked-account sync status
+psql "$DATABASE_URL" -f backend/migrations/003_holdings.sql                    # current holdings (opening balances)
 # rollback (newest first):
+psql "$DATABASE_URL" -f backend/migrations/003_holdings.down.sql
 psql "$DATABASE_URL" -f backend/migrations/002_plaid_sync_status.down.sql
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.down.sql
 ```
@@ -130,7 +131,7 @@ Stripe directly, for a webhook that never arrived.
 | Analyst consensus estimates | **None** | No licensed source is configured, so projected-growth rows say so. Add an `Estimates` provider (e.g. FactSet, S&P, Zacks) when one is licensed. |
 | S&P 500 aggregates (FCF and DPS per index share, ROIC) | `SP500_AGGREGATES_FILE` | **Needs a licensed dataset** (S&P DJI index data, or aggregates built from a licensed fundamentals universe point-in-time). Without it, live mode marks the benchmark unavailable. |
 | S&P 500 total return | SPY adjusted close via Tiingo | A total-return proxy, net of the 0.0945% expense ratio. Licensing the S&P 500 TR index directly would remove the tracking difference. |
-| Brokerage holdings and transactions | Plaid Investments | 24 months of history. Sales of shares bought earlier, and dividends on them, are left out and reported in the app's notes (no phantom short positions). A true opening balance from `/investments/holdings/get` is **not yet implemented**. |
+| Brokerage holdings and transactions | Plaid Investments | 24 months of history. Shares held before the history starts are recovered as an opening balance from `/investments/holdings/get` (today's holding minus what the transactions explain, valued at the first day's close; purchase dates and prices before then are unknown). If holdings haven't synced yet, or can't explain the history, sales of earlier shares and dividends on them are left out and reported in the app's notes, never valued as a short position. |
 | Demo | `providers/demo.py` | Fictional companies, an illustrative benchmark and a sample portfolio, always labeled "Demo data · not market data" |
 
 Freshness: provider responses are cached (prices 6h, fundamentals 24h, search 24h). A failed refresh serves

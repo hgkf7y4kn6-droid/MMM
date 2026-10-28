@@ -13,23 +13,7 @@ from plaid.model.products import Products
 from plaid.model.country_code import CountryCode
 from plaid.model.webhook_verification_key_get_request import WebhookVerificationKeyGetRequest
 from plaid.model.item_remove_request import ItemRemoveRequest
-
-# ── Transfer product ─────────────────────────────────────────────────────────
-# NOTE ON CONFIDENCE: Plaid's Transfer product (real ACH/RTP money movement,
-# not just read access) is approval-gated — Plaid has to enable it on your
-# account before any of these calls succeed, sandbox included, and its
-# request/response shape has changed across plaid-python releases more than
-# the read-only endpoints above. The class names below (TransferAuthorizationCreateRequest,
-# TransferCreateRequest, TransferCapabilitiesGetRequest, TransferMigrateAccountRequest,
-# TransferUserInRequest) match Plaid's current public docs, but verify them
-# against your installed `plaid-python` version before relying on this in
-# anything beyond sandbox — a version mismatch here fails loudly at import
-# time, not silently, so it's a fast thing to catch.
-from plaid.model.transfer_authorization_create_request import TransferAuthorizationCreateRequest
-from plaid.model.transfer_create_request import TransferCreateRequest
-from plaid.model.transfer_capabilities_get_request import TransferCapabilitiesGetRequest
-from plaid.model.transfer_migrate_account_request import TransferMigrateAccountRequest
-from plaid.model.transfer_user_in_request import TransferUserInRequest
+from plaid.model.investments_holdings_get_request import InvestmentsHoldingsGetRequest
 
 PLAID_CLIENT_ID = os.environ.get("PLAID_CLIENT_ID")
 PLAID_SECRET = os.environ.get("PLAID_SECRET")
@@ -109,71 +93,6 @@ def build_investment_txn_request(access_token: str, start_date, end_date, count:
     )
 
 
-# ------------------------------------------------------------------
-# Transfer — move money in ("credit" to the user) or out ("debit" from the
-# user) of a linked account. The sequence Plaid requires is strict:
-# authorization_create MUST happen first (it's Plaid's real-time risk/NSF
-# check) and its authorization_id is a required input to transfer_create —
-# you cannot skip straight to creating a transfer.
-# ------------------------------------------------------------------
-
-def build_transfer_authorization_request(
-    access_token: str, account_id: str, transfer_type: str, amount: str,
-    legal_name: str, network: str = "ach", ach_class: str = "web",
-):
-    """transfer_type: "credit" (moving money TO the user's account — a
-    "transfer in") or "debit" (pulling money FROM it — a "transfer out").
-    amount must be a string like "12.34", not a float — Plaid is strict
-    about this to avoid floating-point cent errors on real money movement."""
-    return TransferAuthorizationCreateRequest(
-        access_token=access_token,
-        account_id=account_id,
-        type=transfer_type,
-        network=network,
-        amount=amount,
-        ach_class=ach_class,
-        user=TransferUserInRequest(legal_name=legal_name),
-    )
-
-
-def build_transfer_create_request(
-    access_token: str, account_id: str, authorization_id: str, amount: str,
-    description: str, transfer_type: str, network: str = "ach", ach_class: str = "web",
-):
-    """description is capped at 10 characters by Plaid/NACHA for ACH — pass
-    something short ("Deposit", "Payment") rather than a full sentence."""
-    return TransferCreateRequest(
-        access_token=access_token,
-        account_id=account_id,
-        authorization_id=authorization_id,
-        type=transfer_type,
-        network=network,
-        amount=amount,
-        ach_class=ach_class,
-        description=description[:10],
-    )
-
-
-def build_transfer_capabilities_request(account_id: str, transfer_type: str, network: str = "ach"):
-    """Checks whether this specific linked account supports a given rail
-    (e.g. same-day ACH, RTP) before you try to authorize against it."""
-    return TransferCapabilitiesGetRequest(account_id=account_id, type=transfer_type, network=network)
-
-
-def build_transfer_migrate_account_request(account_number: str, routing_number: str, account_type: str, legal_name: str):
-    """For bringing pre-verified account/routing numbers over from another
-    processor without re-running Plaid's own verification flow. Returns a
-    new access_token + account_id — treat that access_token exactly like
-    one from item_public_token_exchange (encrypt at rest, store as a
-    PlaidItem row) since it's just as much a live credential."""
-    return TransferMigrateAccountRequest(
-        account_number=account_number,
-        routing_number=routing_number,
-        account_type=account_type,
-        user=TransferUserInRequest(legal_name=legal_name),
-    )
-
-
 def build_webhook_key_request(key_id: str) -> WebhookVerificationKeyGetRequest:
     return WebhookVerificationKeyGetRequest(key_id=key_id)
 
@@ -213,3 +132,7 @@ def revoke_item(access_token: str) -> bool:
         return plaid_error_code(exc) == "ITEM_NOT_FOUND"
     except Exception:
         return False
+
+
+def build_holdings_request(access_token: str) -> InvestmentsHoldingsGetRequest:
+    return InvestmentsHoldingsGetRequest(access_token=access_token)
