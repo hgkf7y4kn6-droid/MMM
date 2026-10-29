@@ -160,8 +160,14 @@ KaventaFi no longer shares auth or storage with other projects:
 - **Clerk:** application `KaventaFi` (`app_3LNiHJF4mJovvsDkwoz6ytuWBbx`), development instance only so far. For local work set
   `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bG92aW5nLW1hbGFtdXRlLTY2Ny5jbGVyay5hY2NvdW50cy5kZXYk` and the same value as
   `CLERK_PUBLISHABLE_KEY` on the API. A production instance needs a domain you own (Clerk creates it, then you add its DNS records);
-  until then `constants/config.ts` still defaults to the shared Riches Digital Ventures production key, which must be replaced
-  by KaventaFi's own `pk_live_` key at that point.
+  The production instance (`ins_3LNiqz2g5yPaCA35OogSWBAVUUZ`) is on `kaventafi.richesdigitalventures.com`, publishable key
+  `pk_live_Y2xlcmsua2F2ZW50YWZpLnJpY2hlc2RpZ2l0YWx2ZW50dXJlcy5jb20k` (see `get_domain_status` for the verified value).
+  Add these CNAMEs at the DNS provider, then wait for Clerk to verify:
+  `clerk`→`frontend-api.clerk.services`, `accounts`→`accounts.clerk.services`, `clkmail`→`mail.eftp4sy0d337.clerk.services`,
+  `clk._domainkey`→`dkim1.eftp4sy0d337.clerk.services`, `clk2._domainkey`→`dkim2.eftp4sy0d337.clerk.services`
+  (each as `<name>.kaventafi.richesdigitalventures.com`). Once verified, make the `pk_live_` key the default in
+  `constants/config.ts`, set it as `CLERK_PUBLISHABLE_KEY` on the API, and add the site to `CLERK_AUTHORIZED_PARTIES`.
+  Until then `constants/config.ts` still defaults to the shared Riches Digital Ventures key.
 - **Supabase:** project `MMM Db East` (`bmdpiszlwaqhuwzbexjf`, us-east-2) holds only this app's tables. Use its session-pooler
   connection string as `DATABASE_URL`. The Supabase CLI/MCP cannot rename a project; rename it to `KaventaFi` in the dashboard.
 - **Not renamed:** the Render services (`mmm-api`, `mmm-web`) and the `mmm.richesdigitalventures.com` domain are live
