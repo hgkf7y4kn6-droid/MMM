@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/format";
 
 const PLAID_SCRIPT = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
-const OAUTH_TOKEN_KEY = "mmm.plaid.link_token";
+const OAUTH_TOKEN_KEY = "kaventafi.plaid.link_token";
 
 type PlaidHandler = { open: () => void; destroy: () => void };
 type PlaidGlobal = {

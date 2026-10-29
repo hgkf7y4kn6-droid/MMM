@@ -60,7 +60,7 @@ def build_link_token_request(user_id: str) -> LinkTokenCreateRequest:
     return LinkTokenCreateRequest(
         products=[Products("investments")],
         optional_products=[Products("transactions")],
-        client_name="Mindful Money",
+        client_name="KaventaFi",
         country_codes=[CountryCode("US")],
         language="en",
         user=LinkTokenCreateRequestUser(client_user_id=user_id),

@@ -148,7 +148,7 @@ class Subscription(Base):
 
 class TrackedSubscription(Base):
     """A recurring bill the user tracks in the app (streaming, software, gym...).
-    Not to be confused with `Subscription`, the user's own Mindful Money Pro
+    Not to be confused with `Subscription`, the user's own KaventaFi Pro
     plan. Entered by the user; `renewal_date` is the next charge they gave,
     and the API rolls it forward by whole billing cycles once it passes."""
     __tablename__ = "tracked_subscriptions"

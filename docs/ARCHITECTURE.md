@@ -2,22 +2,22 @@
 
 ## 1. Repository comparison: what was adopted and why
 
-| Source | Pattern | Where it landed in MMM | Why |
+| Source | Pattern | Where it landed in KaventaFi | Why |
 |---|---|---|---|
-| **DFS-Riches** `app/accounts.py` | Clerk RS256 session-JWT verification against the instance JWKS (rate-limited refresh, `azp` allow-list) | `backend/auth.py` | MMM had **no authentication**: every route trusted a `user_id` in the URL or body |
-| DFS-Riches `accounts.plan()` / `entitled()` + `_require_feature` → 402 | Server-side plan resolution and feature gating, `PRO_GATING` switch for staged rollout | `backend/entitlements.py` | MMM's "Pro" was a client-side boolean (`isPro` in the prototype) |
+| **DFS-Riches** `app/accounts.py` | Clerk RS256 session-JWT verification against the instance JWKS (rate-limited refresh, `azp` allow-list) | `backend/auth.py` | KaventaFi had **no authentication**: every route trusted a `user_id` in the URL or body |
+| DFS-Riches `accounts.plan()` / `entitled()` + `_require_feature` → 402 | Server-side plan resolution and feature gating, `PRO_GATING` switch for staged rollout | `backend/entitlements.py` | KaventaFi's "Pro" was a client-side boolean (`isPro` in the prototype) |
 | DFS-Riches `app/guard.py` | Sliding-window rate limits per client and bucket, body-size caps, Cloudflare-aware client IP | `backend/guard.py` | No abuse protection existed |
 | DFS-Riches `app/cache.py` | TTL cache, in-flight de-duplication, stale-on-error fallback, LRU cap | `backend/providers/cache.py` | Provider calls had no caching, and an outage would have broken screens |
 | DFS-Riches account export/delete (`/api/me`) | User-initiated export and deletion | `backend/api_account.py` | Privacy and commercial-readiness requirement |
 | DFS-Riches mobile `lib/api.ts` | Token source, one quiet retry on 401, server `detail` surfaced as the error | `lib/api.ts` | Consistent auth and error handling for every request |
-| DFS-Riches mobile `ProLock`, `StatusView`, `Skeleton` | Locked previews, loading, error and empty states | `components/pro-lock.tsx`, `status-view.tsx`, `skeleton.tsx` | MMM had no loading, error or locked states. Unlike DFS's version, MMM's `ProLock` never renders the locked content. |
-| DFS-Riches tests layout | pytest per module, API tests through the real app with dependency overrides | `backend/tests/` | MMM had no tests |
+| DFS-Riches mobile `ProLock`, `StatusView`, `Skeleton` | Locked previews, loading, error and empty states | `components/pro-lock.tsx`, `status-view.tsx`, `skeleton.tsx` | KaventaFi had no loading, error or locked states. Unlike DFS's version, KaventaFi's `ProLock` never renders the locked content. |
+| DFS-Riches tests layout | pytest per module, API tests through the real app with dependency overrides | `backend/tests/` | KaventaFi had no tests |
 | **GSAP-Web-dom** | Staggered entrance motion (`stagger`, `expo.out`) | Reanimated `FadeInDown` with per-item delay on the research list and matrix sections. Reanimated respects the system reduce-motion setting. | Same feel without adding GSAP, which targets the DOM and doesn't run in React Native |
 | GSAP-Web-dom `constants/index.js` | Content as data (lists rendered from constants) | `PRO_FEATURE_COPY`, `QUESTIONS`, the disclosure `SECTIONS` | Copy edits don't touch layout code |
 
 **Not adopted:** DFS-Riches' NFL modeling and LLM agents, and GSAP itself plus its video and scroll pinning.
 They don't apply to a React Native finance app. No code was copied verbatim. Both reference repos belong
-to the same owner, so licensing isn't a concern; patterns were adapted to MMM's conventions (NativeWind v5
+to the same owner, so licensing isn't a concern; patterns were adapted to KaventaFi's conventions (NativeWind v5
 `@utility` classes, global `type.d.ts`, flat backend modules).
 
 ## 2. What changed
@@ -99,7 +99,7 @@ growth model; portfolio performance across nine windows (TWR, MWR, volatility, d
 request gets a 402 with `{code: "pro_required", feature, message}` and no data. The plan comes only from
 the `subscriptions` row written by verified webhooks (or `ADMIN_USER_IDS` / `COMPLIMENTARY_PRO_USER_IDS`).
 Client headers or parameters can't change it; `test_client_cannot_claim_pro` checks this. Existing
-entitlements: MMM had none server-side to migrate. Founders and testers can be kept on Pro with
+entitlements: KaventaFi had none server-side to migrate. Founders and testers can be kept on Pro with
 `COMPLIMENTARY_PRO_USER_IDS`.
 
 States: `active` / `trialing` → Pro until period end + `GRACE_DAYS` (covers a late renewal webhook).

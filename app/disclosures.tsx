@@ -8,7 +8,7 @@ const SECTIONS: { title: string; body: string[] }[] = [
   {
     title: "What this is",
     body: [
-      "Mindful Money provides analytical research and decision support. It is not individualized investment, tax or legal advice, and nothing here is a recommendation to buy, sell or hold any security.",
+      "KaventaFi provides analytical research and decision support. It is not individualized investment, tax or legal advice, and nothing here is a recommendation to buy, sell or hold any security.",
       "A dividend growth objective of 7–10%+ a year, and returns that keep pace with or beat the S&P 500 over a full market cycle, are portfolio goals — not guarantees or predictions.",
     ],
   },

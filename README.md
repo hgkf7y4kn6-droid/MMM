@@ -1,4 +1,4 @@
-# Mindful Money
+# KaventaFi
 
 Track every subscription, research dividend growth stocks, and measure your portfolio against the S&P 500.
 Live at **https://mmm.richesdigitalventures.com**.

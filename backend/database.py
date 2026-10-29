@@ -24,7 +24,7 @@ def _url() -> str:
     if not url:
         if APP_ENV == "production":
             raise RuntimeError("DATABASE_URL is required in production.")
-        return "sqlite:///./mmm-dev.db"
+        return "sqlite:///./kaventafi-dev.db"
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://"):]
     if url.startswith("postgresql://"):

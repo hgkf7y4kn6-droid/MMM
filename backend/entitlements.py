@@ -142,7 +142,7 @@ def require_feature(feature: str):
         if not ent.allows(feature):
             raise HTTPException(status_code=402, detail={
                 "code": "pro_required", "feature": feature, "label": PRO_FEATURES[feature],
-                "message": f"{PRO_FEATURES[feature]} is part of Mindful Money Pro.", "status": ent.status,
+                "message": f"{PRO_FEATURES[feature]} is part of KaventaFi Pro.", "status": ent.status,
             })
         return ent
 

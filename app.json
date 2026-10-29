@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Mindful Money",
-    "slug": "mmm",
+    "name": "KaventaFi",
+    "slug": "kaventafi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mmmapp",
+    "scheme": "kaventafi",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -27,8 +27,8 @@
     "web": {
       "output": "single",
       "favicon": "./assets/images/favicon.png",
-      "name": "Mindful Money",
-      "shortName": "Mindful Money",
+      "name": "KaventaFi",
+      "shortName": "KaventaFi",
       "description": "Track every subscription, research dividend growth stocks and measure your portfolio against the S&P 500.",
       "themeColor": "#a8791f",
       "backgroundColor": "#f7f4ec",

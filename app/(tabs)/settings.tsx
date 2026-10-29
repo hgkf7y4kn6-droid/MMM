@@ -44,12 +44,12 @@ export default function Settings() {
         const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
         const a = document.createElement("a");
         a.href = url;
-        a.download = `mindful-money-export-${new Date().toISOString().slice(0, 10)}.json`;
+        a.download = `kaventafi-export-${new Date().toISOString().slice(0, 10)}.json`;
         a.click();
         URL.revokeObjectURL(url);
         setStatus("Your data was downloaded.");
       } else {
-        await Share.share({ title: "Mindful Money data export", message: json });
+        await Share.share({ title: "KaventaFi data export", message: json });
       }
     } catch (e) {
       setStatus(e instanceof ApiError ? e.message : "Export failed.");
@@ -59,7 +59,7 @@ export default function Settings() {
   const deleteData = async () => {
     const ok = await confirm(
       "Delete your data?",
-      "This permanently deletes your tracked subscriptions, linked accounts, transactions and investment history from Mindful Money. Your sign-in account stays, so you can keep using the app.",
+      "This permanently deletes your tracked subscriptions, linked accounts, transactions and investment history from KaventaFi. Your sign-in account stays, so you can keep using the app.",
       "Delete",
     );
     if (!ok) return;
@@ -86,7 +86,7 @@ export default function Settings() {
         <Row label="Signed in as" value={email} />
         <Row label="Sign out" onPress={doSignOut} />
         <Text className="list-title mt-6">Plan</Text>
-        <Row label="Mindful Money Pro" value={plan} />
+        <Row label="KaventaFi Pro" value={plan} />
         <Row label={me?.entitlement.plan === "pro" ? "Manage subscription" : "Upgrade to Pro"} onPress={() => router.push("/pro")} />
         <Text className="list-title mt-6">Your data</Text>
         <Row label="Export my data" onPress={apiConfigured() ? exportData : undefined} />

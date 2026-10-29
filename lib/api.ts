@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "@/constants/config";
 
 /**
- * Client for the Mindful Money API. Every request carries the signed-in
+ * Client for the KaventaFi API. Every request carries the signed-in
  * user's session token (Authorization: Bearer); the server decides what the
  * account may see, so nothing here is trusted for access control.
  * Pattern from DFS-Riches mobile/lib/api.ts.
@@ -34,7 +34,7 @@ export const apiConfigured = () => API_BASE_URL.length > 0;
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!apiConfigured()) {
-    throw new ApiError("Not connected to the Mindful Money service yet.", 0, "not_configured");
+    throw new ApiError("Not connected to the KaventaFi service yet.", 0, "not_configured");
   }
   const call = async (fresh: boolean) => {
     const token = await tokenSource(fresh);

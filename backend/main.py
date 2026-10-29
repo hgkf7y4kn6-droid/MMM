@@ -1,5 +1,5 @@
 """
-Mindful Money API
+KaventaFi API
     pip install -r requirements.txt
     uvicorn main:app --reload
 
@@ -62,7 +62,7 @@ Base.metadata.create_all(bind=engine)  # creates missing tables; column changes 
 lock_down_tables()                      # Supabase: keep tables off its public REST API (database.py)
 sign_in_required()                      # refuses to start with REQUIRE_SIGN_IN=0 in production
 
-app = FastAPI(title="Mindful Money API", version="1.1.0")
+app = FastAPI(title="KaventaFi API", version="1.1.0")
 
 # CORS — the original snippet paired allow_origins=["*"] with
 # allow_credentials=True. Browsers actually reject that combination once

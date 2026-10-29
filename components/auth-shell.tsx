@@ -37,9 +37,9 @@ export function AuthShell({
               source={require("../assets/images/logo.png")}
               style={{ width: 102, height: 60 }}
               contentFit="contain"
-              accessibilityLabel="Mindful Money"
+              accessibilityLabel="KaventaFi"
             />
-            <Text className="auth-wordmark">Mindful Money</Text>
+            <Text className="auth-wordmark">KaventaFi</Text>
             <Text className="auth-title" accessibilityRole="header">
               {title}
             </Text>

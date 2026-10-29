@@ -63,7 +63,7 @@ export default function Pro() {
     <SafeAreaView className="screen" edges={["top"]}>
       <ScrollView contentContainerClassName="screen-pad">
         <BackLink />
-        <Text className="pro-kicker">Mindful Money Pro</Text>
+        <Text className="pro-kicker">KaventaFi Pro</Text>
         <Text className="screen-title" accessibilityRole="header">
           {isPro ? "You have Pro" : "Research that compounds"}
         </Text>

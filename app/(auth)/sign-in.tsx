@@ -124,14 +124,14 @@ export default function SignIn() {
       title={coding ? `Check your ${where}` : "Welcome back"}
       subtitle={
         coding
-          ? `Enter the code we sent to your ${where}. It comes from your Riches Digital Ventures account, which Mindful Money shares with our other apps, so the sender may not say Mindful Money.`
+          ? `Enter the code we sent to your ${where}. It comes from your Riches Digital Ventures account, which KaventaFi shares with our other apps, so the sender may not say KaventaFi.`
           : "Sign in to see your subscriptions, research and portfolio. No password? Leave it blank and we'll email you a code."
       }
       showFeatures={!coding}
       footer={
         coding ? null : (
           <View className="w-full items-center">
-            <Text className="mb-2 font-sans-medium text-sm text-muted-foreground">New to Mindful Money?</Text>
+            <Text className="mb-2 font-sans-medium text-sm text-muted-foreground">New to KaventaFi?</Text>
             <Link href="/sign-up" replace asChild>
               <Pressable className="btn-outline w-full" accessibilityRole="link">
                 <Text className="btn-outline-text">Create a free account</Text>

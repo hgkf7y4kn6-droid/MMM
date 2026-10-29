@@ -199,7 +199,7 @@ def test_revenuecat_lifecycle(monkeypatch):
 
 def test_checkout_rejects_foreign_return_urls():
     r = client_as("u").post("/api/billing/checkout", json={"success_url": "https://evil.example/x",
-                                                          "cancel_url": "mmmapp://pro"})
+                                                          "cancel_url": "kaventafi://pro"})
     assert r.status_code == 400
 
 

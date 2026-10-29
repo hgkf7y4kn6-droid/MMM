@@ -56,7 +56,7 @@ export default function ProLock({ feature, children }: { feature: ProFeature; ch
         </View>
       </View>
       <View className="pro-lock-overlay">
-        <Text className="pro-kicker">Mindful Money Pro</Text>
+        <Text className="pro-kicker">KaventaFi Pro</Text>
         <Text className="pro-lock-title">{copy.title}</Text>
         <Text className="pro-lock-text">{copy.pitch}</Text>
         <Pressable

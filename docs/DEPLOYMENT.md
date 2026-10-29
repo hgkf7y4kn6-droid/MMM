@@ -29,7 +29,7 @@ Production Clerk keys only work on the instance's domain and its subdomains, so 
 the sign-in page but can't sign in. The API's own repo-root `package.json` is the Expo app,
 so a Node web service pointed at the repo root can't run anything; that's why the API is a Python service.
 
-### Why sign-in and password emails don't say "Mindful Money"
+### Why sign-in and password emails don't say "KaventaFi"
 
 Sign-in codes and password emails are sent by Clerk, not by this repo, and the Riches Digital Ventures Clerk
 instance is shared by every app that uses it. Their sender name, subject and body come from the instance's
@@ -39,7 +39,7 @@ Fix, in the Clerk dashboard (no code change):
 
 1. Set the instance's application name to a neutral brand ("Riches Digital Ventures") and edit the *Verification code*
    and *Reset password code* templates to use `{{app.name}}` instead of a product name.
-2. For emails that say Mindful Money specifically, the app needs its **own Clerk instance** (own users, own
+2. For emails that say KaventaFi specifically, the app needs its **own Clerk instance** (own users, own
    publishable key and `CLERK_PUBLISHABLE_KEY`). That ends single sign-on with Riches Analytics, so decide that first.
 
 ## Environment variables
@@ -107,7 +107,7 @@ the shape to start from.
 2. Add a webhook endpoint at `https://<api>/api/billing/webhook/stripe` for `checkout.session.completed`
    and `customer.subscription.created`, `.updated` and `.deleted`. Set `STRIPE_WEBHOOK_SECRET`.
 3. Enable the Customer Portal (cancel, update payment method).
-4. Add the app's return scheme to `BILLING_RETURN_URLS` (`mmmapp://`).
+4. Add the app's return scheme to `BILLING_RETURN_URLS` (`kaventafi://`).
 
 **iOS and Android (RevenueCat)**
 
@@ -152,3 +152,17 @@ time, demo or stale flags, license note).
 7. Monitoring: platform health check on `/`, error reporting (Sentry or similar; not yet wired), and alerts
    on 5xx rate and webhook failures.
 8. Scale-out: the rate limiter is per process. With more than one instance, move counters to Redis.
+
+## KaventaFi's own Clerk and Supabase
+
+KaventaFi no longer shares auth or storage with other projects:
+
+- **Clerk:** application `KaventaFi` (`app_3LNiHJF4mJovvsDkwoz6ytuWBbx`), development instance only so far. For local work set
+  `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_bG92aW5nLW1hbGFtdXRlLTY2Ny5jbGVyay5hY2NvdW50cy5kZXYk` and the same value as
+  `CLERK_PUBLISHABLE_KEY` on the API. A production instance needs a domain you own (Clerk creates it, then you add its DNS records);
+  until then `constants/config.ts` still defaults to the shared Riches Digital Ventures production key, which must be replaced
+  by KaventaFi's own `pk_live_` key at that point.
+- **Supabase:** project `MMM Db East` (`bmdpiszlwaqhuwzbexjf`, us-east-2) holds only this app's tables. Use its session-pooler
+  connection string as `DATABASE_URL`. The Supabase CLI/MCP cannot rename a project; rename it to `KaventaFi` in the dashboard.
+- **Not renamed:** the Render services (`mmm-api`, `mmm-web`) and the `mmm.richesdigitalventures.com` domain are live
+  infrastructure; rename or re-point them when the new domain is chosen.

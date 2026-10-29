@@ -104,7 +104,7 @@ class CheckoutIn(BaseModel):
 
 
 def _allowed_return(url: str) -> bool:
-    allowed = [u.strip() for u in os.environ.get("BILLING_RETURN_URLS", "mmmapp://").split(",") if u.strip()]
+    allowed = [u.strip() for u in os.environ.get("BILLING_RETURN_URLS", "kaventafi://").split(",") if u.strip()]
     return any(url.startswith(prefix) for prefix in allowed)
 
 

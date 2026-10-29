@@ -72,7 +72,7 @@ export default function SignUp() {
           (await signUp!.create({
             emailAddress: form.email.trim(),
             username: form.username.trim(),
-            unsafeMetadata: { signed_up_from: "mindful-money" },
+            unsafeMetadata: { signed_up_from: "kaventafi" },
           })) as SignUpResult,
         );
       } else if (step === "email_code") {

@@ -26,7 +26,7 @@ from models import Account, Holding, InvestmentTransaction, PlaidItem, Transacti
 
 log = logging.getLogger("tasks")
 
-celery_app = Celery("mmm", broker=os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
+celery_app = Celery("kaventafi", broker=os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
                     backend=os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
 celery_app.conf.update(task_always_eager=os.environ.get("CELERY_EAGER") == "1", task_acks_late=True,
                        task_reject_on_worker_lost=True, result_expires=3600)
@@ -288,7 +288,7 @@ def scrape_esg_data_task(target_url: str) -> dict:
     used to make the server fetch arbitrary or internal URLs."""
     if not _allowed_host(target_url):
         return {"error": "host not allowed"}
-    resp = httpx.get(target_url, timeout=20, follow_redirects=False, headers={"User-Agent": "MMM-research/1.0"})
+    resp = httpx.get(target_url, timeout=20, follow_redirects=False, headers={"User-Agent": "KaventaFi-research/1.0"})
     resp.raise_for_status()
     html = resp.text[:500_000]
     import re
