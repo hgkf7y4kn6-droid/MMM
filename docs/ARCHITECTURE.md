@@ -106,3 +106,29 @@ States: `active` / `trialing` → Pro until period end + `GRACE_DAYS` (covers a 
 `past_due` → Pro until the provider's grace end, or period end + grace. `canceled` → Pro until the paid
 period ends. `expired`, `paused` and `incomplete` → Free. An `active` row whose period ended more than
 `GRACE_DAYS` ago is treated as expired, so a lost webhook can't grant access forever.
+
+## Brand and design tokens
+
+Brand references are in `docs/brand`: `brand-board.jpg`, `logo-lockup.jpg` and `app-icon-tile.jpg`.
+
+- **Palette:** Trustworthy Teal `#3a6b7e` (primary), Stable Slate `#59656f` (secondary text), Growth Green
+  `#4da167` (fills; text uses the darker `success` `#2b7746`) and Prosperous Gold `#d7b740` (highlights; text
+  uses `gold-deep` `#7f6410`). Gold and green fail WCAG contrast as text on light surfaces, so the bright values
+  are for fills only. Light surfaces are the board's warm cream (`#fbf7ec`) with deep-teal text and hero
+  panels (`#0e3b45`). Tokens live in `global.css` and are mirrored in `constants/theme.ts`; change both.
+- **Type:** Plus Jakarta Sans for the interface, Nunito Black and ExtraBold for the wordmark and tagline
+  (`font-brand`, `font-brand-bold`), Fraunces (semibold, bold) for headlines and
+  large figures (`font-display`, `font-display-bold`). Both are bundled in `assets/fonts` under the SIL OFL.
+- **Mark:** `components/logo.tsx` draws the K mark (leaf, blades, gold sun) as SVG with gradients, sampled from
+  the lockup image. The app icons in `assets/images` use the same geometry on a frosted-glass tile with a soft
+  green, aqua and gold glow, as in `app-icon-tile.jpg`. They were rendered from HTML; replace them with the
+  original vector artwork if it becomes available.
+- **Landing page:** signed-out visitors open on `app/(auth)/welcome.tsx`. It uses sample figures labelled as
+  such; keep any claim there true to the product.
+- **Motion:** `components/reveal` (fade and lift on scroll), `components/magnetic` (buttons follow the pointer)
+  and `lib/use-smooth-scroll` (Lenis inertial scrolling) are web-only effects, ported from the GSAP-Web-dom
+  repo's approach. They apply to fine pointers only and switch off under reduced motion.
+- **3D hero:** `components/hero-scene.tsx` (three.js through react-three-fiber) is rendered by `hero-3d.web.tsx`
+  in browsers and `hero-3d.tsx` through expo-gl on iOS and Android. It loads on demand (its own 900 kB chunk on
+  the web) and falls back to the logo if WebGL is unavailable. The native renderer needs Expo Go or a
+  development build and has not been run on a device yet.

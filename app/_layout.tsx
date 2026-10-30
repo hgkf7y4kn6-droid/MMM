@@ -1,13 +1,13 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { useFonts } from "expo-font";
-import { Image } from "expo-image";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
-import { SplashScreen, Stack } from "expo-router";
+import { router, SplashScreen, Stack, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Platform, useColorScheme, View } from "react-native";
 
+import { Logo } from "@/components/logo";
 import { CLERK_PUBLISHABLE_KEY } from "@/constants/config";
 import { colors } from "@/constants/theme";
 import { EntitlementsProvider } from "@/lib/entitlements";
@@ -39,10 +39,22 @@ function Routes() {
   const { isLoaded, isSignedIn } = useAuth();
   const dark = useColorScheme() === "dark";
 
+  // public/404.html sends deep links that the host couldn't serve to "/" with the
+  // wanted path saved; go there once the session is known so the guards apply.
+  useEffect(() => {
+    if (Platform.OS !== "web" || !isLoaded) return;
+    try {
+      const to = sessionStorage.getItem("kfi-redirect");
+      if (!to) return;
+      sessionStorage.removeItem("kfi-redirect");
+      if (to !== "/") router.replace(to as Href);
+    } catch {}
+  }, [isLoaded]);
+
   if (!isLoaded) {
     return (
       <View className="auth-gate">
-        <Image source={require("../assets/images/logo.png")} style={{ width: 102, height: 60 }} contentFit="contain" />
+        <Logo size={44} tagline />
         <ActivityIndicator className="mt-6" color={colors[dark ? "dark" : "light"].primary} />
       </View>
     );
@@ -74,6 +86,10 @@ export default function RootLayout() {
     "sans-semibold": require("../assets/fonts/PlusJakartaSans-SemiBold.ttf"),
     "sans-extrabold": require("../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
+    "brand-extrabold": require("../assets/fonts/Nunito_800ExtraBold.ttf"),
+    "brand-black": require("../assets/fonts/Nunito_900Black.ttf"),
+    "display-semibold": require("../assets/fonts/Fraunces_600SemiBold.ttf"),
+    "display-bold": require("../assets/fonts/Fraunces_700Bold.ttf"),
   });
 
   useEffect(() => {

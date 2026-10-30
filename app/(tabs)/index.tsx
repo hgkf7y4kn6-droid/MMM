@@ -1,5 +1,6 @@
 import { useUser } from "@clerk/expo";
 import dayjs from "dayjs";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, RefreshControl, Text, View } from "react-native";
@@ -103,7 +104,13 @@ export default function Home() {
               </Pressable>
             </View>
 
-            <View className="home-balance-card">
+            <LinearGradient
+              colors={["#0e3b45", "#125a5c", "#1c7a63"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ marginTop: 16, borderRadius: 28, padding: 20, overflow: "hidden" }}
+            >
+              <View pointerEvents="none" style={{ position: "absolute", right: -28, top: -28, width: 120, height: 120, borderRadius: 60, backgroundColor: "#d7b740", opacity: 0.22 }} />
               <Text className="home-balance-label">Subscriptions per month</Text>
               <View className="home-balance-row">
                 <Text className="home-balance-amount" adjustsFontSizeToFit numberOfLines={1}>
@@ -128,7 +135,7 @@ export default function Home() {
                   <Text className="home-balance-sub">Next {dayjs(summary.next_renewal_date).format("MMM D")}</Text>
                 ) : null}
               </View>
-            </View>
+            </LinearGradient>
 
             {loading || error ? (
               <View className="mt-6">

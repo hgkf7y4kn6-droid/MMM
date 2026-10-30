@@ -5,44 +5,50 @@
 
 /*
  * KaventaFi design tokens.
- * Palette from the KaventaFi logo (see reference/MindfulMoneyManagement.jsx THEMES):
- * paper-like light mode, near-black dark mode, gold / silver / bronze accents.
+ * Palette: Trustworthy Teal (primary), Stable Slate (secondary text), Growth Green
+ * (gains and success only) and Prosperous Gold (premium highlights). Gold and green
+ * fail WCAG as text on light surfaces, so text uses --color-gold-deep and
+ * --color-success, and the brighter values are for fills.
  * Light values live in @theme; dark values override the same variables below.
+ * Keep constants/theme.ts in sync.
  */
 @theme {
   /* Surfaces */
-  --color-background: #f7f4ec;
+  --color-background: #fbf7ec;
   --color-card: #ffffff;
-  --color-surface: #fbf9f3;
-  --color-muted: #f0ece0;
-  --color-border: #ddd6c4;
+  --color-surface: #fefbf3;
+  --color-muted: #f1ecdd;
+  --color-border: #e2dac4;
 
   /* Text */
-  --color-foreground: #1a1a20;
-  --color-muted-foreground: #726c5c;
+  --color-foreground: #0e2f38;
+  --color-muted-foreground: #59656f;
 
   /* Brand */
-  --color-primary: #a8791f;
+  --color-primary: #3a6b7e;
   --color-primary-foreground: #ffffff;
-  --color-accent: #1668c9;
-  --color-accent-foreground: #ffffff;
-  --color-gold: #a8791f;
-  --color-silver: #7c7c86;
+  --color-accent: #a8861c;
+  --color-accent-foreground: #16242b;
+  --color-hero: #0e3b45;
+  --color-gold: #d7b740;
+  --color-gold-deep: #7f6410;
+  --color-silver: #7c8a93;
   --color-bronze: #9a5a30;
 
   /* Meaning */
-  --color-success: #0a9e6e;
-  --color-destructive: #d6284a;
-  --color-subscription: #7a3fd6;
-  --color-investment: #0a9891;
-  --color-info: #0678a0;
+  --color-success: #2b7746;
+  --color-growth: #4da167;
+  --color-destructive: #c42b47;
+  --color-subscription: #6b4fb3;
+  --color-investment: #2b7f86;
+  --color-info: #2b6cb0;
 
   /* Analysis categories (stock matrix): validated against both surfaces */
-  --color-tone-green: #0a8a5f;
-  --color-tone-yellow: #a8791f;
-  --color-tone-blue: #1668c9;
-  --color-tone-pink: #c0306e;
-  --color-tone-orange: #c25a14;
+  --color-tone-green: #2b7746;
+  --color-tone-yellow: #7f6410;
+  --color-tone-blue: #2b6cb0;
+  --color-tone-pink: #b02d68;
+  --color-tone-orange: #b5540f;
 
   /* Fonts: names match the keys passed to useFonts in app/_layout.tsx */
   --font-sans: "sans-regular";
@@ -51,6 +57,12 @@
   --font-sans-semibold: "sans-semibold";
   --font-sans-bold: "sans-bold";
   --font-sans-extrabold: "sans-extrabold";
+  /* Rounded brand face (Nunito) for the wordmark */
+  --font-brand: "brand-black";
+  --font-brand-bold: "brand-extrabold";
+  /* Display serif (Fraunces) for headlines and large figures */
+  --font-display: "display-semibold";
+  --font-display-bold: "display-bold";
 }
 
 /* nativewind/theme sets --font-sans to the system font per platform;
@@ -66,32 +78,35 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #0a0a10;
-    --color-card: #121218;
-    --color-surface: #17171f;
-    --color-muted: #1e1e28;
-    --color-border: #2a2a38;
+    --color-background: #0b1519;
+    --color-card: #112027;
+    --color-surface: #162830;
+    --color-muted: #1b2f38;
+    --color-border: #27414c;
 
-    --color-foreground: #f2ede0;
-    --color-muted-foreground: #8b8574;
+    --color-foreground: #eef3f4;
+    --color-muted-foreground: #9daeb7;
 
-    --color-primary: #d4af37;
-    --color-primary-foreground: #0a0a10;
-    --color-accent: #4a9eff;
-    --color-accent-foreground: #0a0a10;
-    --color-gold: #d4af37;
-    --color-silver: #c4c4cc;
+    --color-primary: #6aa5bc;
+    --color-primary-foreground: #0b1519;
+    --color-accent: #d7b740;
+    --color-accent-foreground: #0b1519;
+    --color-hero: #0b1d23;
+    --color-gold: #d7b740;
+    --color-gold-deep: #d7b740;
+    --color-silver: #c4ced3;
     --color-bronze: #c17a4a;
 
-    --color-success: #00e8a0;
-    --color-destructive: #ff4d6a;
-    --color-subscription: #a06bff;
-    --color-investment: #00d4c8;
-    --color-info: #22d3ee;
+    --color-success: #5fc083;
+    --color-growth: #5fc083;
+    --color-destructive: #ff6b82;
+    --color-subscription: #b49cf0;
+    --color-investment: #5cc8cf;
+    --color-info: #6fa8e0;
 
-    --color-tone-green: #2fd39a;
-    --color-tone-yellow: #d4af37;
-    --color-tone-blue: #4a9eff;
+    --color-tone-green: #5fc083;
+    --color-tone-yellow: #d7b740;
+    --color-tone-blue: #6fa8e0;
     --color-tone-pink: #f06aa5;
     --color-tone-orange: #f08a3c;
   }
@@ -137,16 +152,16 @@
   @apply mt-4 rounded-3xl bg-primary p-5;
 }
 @utility home-balance-label {
-  @apply font-sans-medium text-sm text-primary-foreground/80;
+  @apply font-sans-medium text-sm text-white/80;
 }
 @utility home-balance-row {
   @apply mt-2 flex-row items-end justify-between;
 }
 @utility home-balance-amount {
-  @apply font-sans-extrabold text-4xl text-primary-foreground;
+  @apply font-display-bold text-4xl tracking-tight text-white;
 }
 @utility home-balance-date {
-  @apply font-sans-medium text-sm text-primary-foreground/80;
+  @apply font-sans-medium text-sm text-white/80;
 }
 
 /* List section heading */
@@ -154,7 +169,7 @@
   @apply mb-3 mt-6 flex-row items-center justify-between;
 }
 @utility list-title {
-  @apply font-sans-bold text-xl text-foreground;
+  @apply font-display text-2xl text-foreground;
 }
 @utility list-action {
   @apply rounded-full bg-muted px-3 py-1.5;
@@ -256,7 +271,7 @@
   @apply w-full max-w-[680px] self-center px-5 pb-32 pt-2;
 }
 @utility screen-title {
-  @apply font-sans-extrabold text-3xl text-foreground;
+  @apply font-display text-3xl tracking-tight text-foreground;
 }
 @utility screen-subtitle {
   @apply mt-1 font-sans text-sm text-muted-foreground;
@@ -271,7 +286,7 @@
   @apply rounded-3xl border border-border bg-card p-4;
 }
 @utility card-title {
-  @apply font-sans-bold text-lg text-foreground;
+  @apply font-display text-xl text-foreground;
 }
 @utility card-caption {
   @apply mt-1 font-sans text-xs leading-5 text-muted-foreground;
@@ -329,7 +344,7 @@
   @apply font-sans-medium text-xs text-muted-foreground;
 }
 @utility stat-value {
-  @apply mt-1 font-sans-extrabold text-xl text-foreground;
+  @apply mt-1 font-display-bold text-xl text-foreground;
 }
 @utility stat-sub {
   @apply mt-0.5 font-sans text-xs text-muted-foreground;
@@ -349,7 +364,7 @@
   @apply bg-gold/15;
 }
 @utility badge-warn-text {
-  @apply text-gold;
+  @apply text-gold-deep;
 }
 @utility chip-row {
   @apply flex-row gap-2;
@@ -369,13 +384,13 @@
 
 /* Buttons */
 @utility btn {
-  @apply min-h-12 items-center justify-center rounded-full bg-primary px-6;
+  @apply min-h-12 items-center justify-center rounded-full bg-primary px-6 active:scale-[0.98] active:opacity-90;
 }
 @utility btn-text {
   @apply font-sans-bold text-base text-primary-foreground;
 }
 @utility btn-outline {
-  @apply min-h-11 items-center justify-center rounded-full border border-border px-5;
+  @apply min-h-11 items-center justify-center rounded-full border border-border px-5 active:scale-[0.98] active:bg-muted;
 }
 @utility btn-outline-text {
   @apply font-sans-semibold text-sm text-foreground;
@@ -479,10 +494,10 @@
   @apply h-[60px] w-[102px];
 }
 @utility auth-wordmark {
-  @apply mt-3 font-sans-extrabold text-sm uppercase tracking-[3px] text-primary;
+  @apply mt-3 font-display text-xl tracking-wide text-primary;
 }
 @utility auth-title {
-  @apply mt-8 font-sans-extrabold text-3xl text-foreground;
+  @apply mt-8 font-display text-3xl tracking-tight text-foreground;
 }
 @utility auth-subtitle {
   @apply mt-2 font-sans text-base leading-6 text-muted-foreground;
@@ -543,7 +558,7 @@
 
 /* ── Header buttons ──────────────────────────────────────────────────────── */
 @utility icon-btn {
-  @apply size-11 items-center justify-center rounded-full bg-primary;
+  @apply size-11 items-center justify-center rounded-full bg-primary active:scale-95 active:opacity-90;
 }
 @utility icon-btn-glyph {
   @apply text-2xl text-primary-foreground;
@@ -557,10 +572,10 @@
   @apply font-sans text-sm text-muted-foreground;
 }
 @utility home-balance-foot {
-  @apply mt-3 flex-row items-center justify-between border-t border-primary-foreground/20 pt-3;
+  @apply mt-3 flex-row items-center justify-between border-t border-white/20 pt-3;
 }
 @utility home-balance-sub {
-  @apply font-sans-medium text-xs text-primary-foreground/80;
+  @apply font-sans-medium text-xs text-white/80;
 }
 @utility empty-card {
   @apply items-center rounded-3xl border border-dashed border-border bg-card px-6 py-8;

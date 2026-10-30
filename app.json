@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0a0a10",
+        "backgroundColor": "#fff8e6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,8 +30,8 @@
       "name": "KaventaFi",
       "shortName": "KaventaFi",
       "description": "Track every subscription, research dividend growth stocks and measure your portfolio against the S&P 500.",
-      "themeColor": "#a8791f",
-      "backgroundColor": "#f7f4ec",
+      "themeColor": "#0e3b45",
+      "backgroundColor": "#fbf7ec",
       "lang": "en"
     },
     "plugins": [
@@ -42,9 +42,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#f7f4ec",
+          "backgroundColor": "#fbf7ec",
           "dark": {
-            "backgroundColor": "#0a0a10"
+            "backgroundColor": "#0b1d23"
           }
         }
       ],
@@ -57,7 +57,11 @@
             "./assets/fonts/PlusJakartaSans-Medium.ttf",
             "./assets/fonts/PlusJakartaSans-SemiBold.ttf",
             "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
-            "./assets/fonts/PlusJakartaSans-Light.ttf"
+            "./assets/fonts/PlusJakartaSans-Light.ttf",
+            "./assets/fonts/Nunito_800ExtraBold.ttf",
+            "./assets/fonts/Nunito_900Black.ttf",
+            "./assets/fonts/Fraunces_600SemiBold.ttf",
+            "./assets/fonts/Fraunces_700Bold.ttf"
           ]
         }
       ],
