@@ -18,6 +18,8 @@
 
 The API adds baseline security headers to every response and hides `/docs`, `/redoc` and `/openapi.json` when `APP_ENV=production`. Set the `mmm-api` health check path to `/` in Render.
 
+`render.yaml` describes both services (build and start commands, health check, rewrite rule, web headers and the names of the API's environment variables, with `sync: false` for secrets). Creating a Blueprint from it in Render does not adopt services that already exist, so check Render's current docs before linking it to the live ones: a mismatch can create duplicates instead.
+
 `EXPO_PUBLIC_API_URL` on `mmm-web` is read at **build** time, so redeploy the site after changing it. Add
 the site's URL to `ALLOWED_ORIGINS` on `mmm-api`.
 
