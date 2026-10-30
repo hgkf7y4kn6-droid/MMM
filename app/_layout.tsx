@@ -2,7 +2,7 @@ import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
-import { SplashScreen, Stack } from "expo-router";
+import { router, SplashScreen, Stack, type Href } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Platform, useColorScheme, View } from "react-native";
@@ -38,6 +38,18 @@ const navTheme = (dark: boolean) => {
 function Routes() {
   const { isLoaded, isSignedIn } = useAuth();
   const dark = useColorScheme() === "dark";
+
+  // public/404.html sends deep links that the host couldn't serve to "/" with the
+  // wanted path saved; go there once the session is known so the guards apply.
+  useEffect(() => {
+    if (Platform.OS !== "web" || !isLoaded) return;
+    try {
+      const to = sessionStorage.getItem("kfi-redirect");
+      if (!to) return;
+      sessionStorage.removeItem("kfi-redirect");
+      if (to !== "/") router.replace(to as Href);
+    } catch {}
+  }, [isLoaded]);
 
   if (!isLoaded) {
     return (

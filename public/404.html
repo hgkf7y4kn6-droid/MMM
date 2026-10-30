@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KaventaFi</title>
+    <!--
+      Static hosts serve this file for any path that isn't a real file (for example a
+      direct visit to /sign-in). Remember the path and load the app at "/", which
+      restores it (see Routes in app/_layout.tsx). A host rewrite of /* to /index.html
+      makes this unnecessary, but it keeps deep links working without one.
+    -->
+    <script>
+      try {
+        sessionStorage.setItem("kfi-redirect", location.pathname + location.search + location.hash);
+      } catch (e) {}
+      location.replace("/");
+    </script>
+  </head>
+  <body></body>
+</html>
