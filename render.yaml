@@ -1,0 +1,85 @@
+# Render Blueprint for KaventaFi. Secrets use `sync: false`: Render asks for them
+# in the dashboard and never stores them here. See docs/DEPLOYMENT.md.
+services:
+  - type: web
+    name: KaventaFi-api
+    runtime: python
+    region: ohio
+    plan: free
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: cd backend && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: APP_ENV
+        value: production
+      # REQUIRE_SIGN_IN must stay unset: the API refuses to start in production with REQUIRE_SIGN_IN=0.
+      - key: DATABASE_URL
+        sync: false
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_AUTHORIZED_PARTIES
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: FERNET_KEY
+        sync: false
+      - key: PLAID_CLIENT_ID
+        sync: false
+      - key: PLAID_SECRET
+        sync: false
+      - key: PLAID_ENV
+        sync: false
+      - key: PLAID_WEBHOOK_URL
+        sync: false
+      - key: PLAID_REDIRECT_URI
+        sync: false
+      - key: TIINGO_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_PRICE_ID
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: BILLING_RETURN_URLS
+        sync: false
+      - key: REVENUECAT_WEBHOOK_AUTH
+        sync: false
+
+  - type: web
+    name: KaventaFi
+    runtime: static
+    branch: main
+    autoDeployTrigger: commit
+    buildCommand: npm ci && npx expo export --platform web
+    staticPublishPath: dist
+    envVars:
+      - key: EXPO_PUBLIC_API_URL
+        value: https://mmm-api-nboc.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+      - path: /*
+        name: Content-Security-Policy-Report-Only
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.richesdigitalventures.com https://*.clerk.accounts.dev https://cdn.plaid.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://img.clerk.com; font-src 'self' data:; connect-src 'self' https://mmm-api-nboc.onrender.com https://clerk.richesdigitalventures.com https://*.clerk.accounts.dev https://*.plaid.com; frame-src https://cdn.plaid.com https://challenges.cloudflare.com; worker-src 'self' blob:; frame-ancestors 'none'"

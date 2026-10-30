@@ -62,7 +62,14 @@ Base.metadata.create_all(bind=engine)  # creates missing tables; column changes 
 lock_down_tables()                      # Supabase: keep tables off its public REST API (database.py)
 sign_in_required()                      # refuses to start with REQUIRE_SIGN_IN=0 in production
 
-app = FastAPI(title="KaventaFi API", version="1.1.0")
+_prod = os.getenv("APP_ENV") == "production"
+# Interactive docs and the schema map every route; keep them off in production.
+app = FastAPI(
+    title="KaventaFi API", version="1.1.0",
+    docs_url=None if _prod else "/docs",
+    redoc_url=None if _prod else "/redoc",
+    openapi_url=None if _prod else "/openapi.json",
+)
 
 # CORS — the original snippet paired allow_origins=["*"] with
 # allow_credentials=True. Browsers actually reject that combination once
@@ -77,6 +84,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Authorization", "Content-Type"],
 )
+app.add_middleware(guard.SecurityHeadersMiddleware)
 app.add_middleware(guard.GuardMiddleware)   # outermost: rate limits and body caps (guard.py)
 app.include_router(api_stocks.router)
 app.include_router(api_portfolio.router)

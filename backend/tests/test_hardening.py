@@ -383,3 +383,12 @@ def test_linked_portfolio_uses_holdings_for_the_opening_balance():
     body = client_as("alice").get("/api/portfolio/overview").json()
     assert [(h["symbol"], h["shares"]) for h in body["holdings"]] == [("DEMO-LITE", 15)]
     assert any("opening balance" in n for n in body["notes"])
+
+
+def test_api_responses_carry_security_headers():
+    r = TestClient(main.app).get("/")
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert r.headers["x-frame-options"] == "DENY"
+    assert r.headers["referrer-policy"] == "no-referrer"
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
+    assert "max-age=" in r.headers["strict-transport-security"]
