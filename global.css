@@ -14,14 +14,14 @@
  */
 @theme {
   /* Surfaces */
-  --color-background: #f4f7f8;
+  --color-background: #fbf7ec;
   --color-card: #ffffff;
-  --color-surface: #f8fafb;
-  --color-muted: #e8eff1;
-  --color-border: #d6e0e4;
+  --color-surface: #fefbf3;
+  --color-muted: #f1ecdd;
+  --color-border: #e2dac4;
 
   /* Text */
-  --color-foreground: #16242b;
+  --color-foreground: #0e2f38;
   --color-muted-foreground: #59656f;
 
   /* Brand */
@@ -29,7 +29,7 @@
   --color-primary-foreground: #ffffff;
   --color-accent: #a8861c;
   --color-accent-foreground: #16242b;
-  --color-hero: #23495a;
+  --color-hero: #0e3b45;
   --color-gold: #d7b740;
   --color-gold-deep: #7f6410;
   --color-silver: #7c8a93;
@@ -88,7 +88,7 @@
     --color-primary-foreground: #0b1519;
     --color-accent: #d7b740;
     --color-accent-foreground: #0b1519;
-    --color-hero: #0f252d;
+    --color-hero: #0b1d23;
     --color-gold: #d7b740;
     --color-gold-deep: #d7b740;
     --color-silver: #c4ced3;
@@ -149,16 +149,16 @@
   @apply mt-4 rounded-3xl bg-primary p-5;
 }
 @utility home-balance-label {
-  @apply font-sans-medium text-sm text-primary-foreground/80;
+  @apply font-sans-medium text-sm text-white/80;
 }
 @utility home-balance-row {
   @apply mt-2 flex-row items-end justify-between;
 }
 @utility home-balance-amount {
-  @apply font-display-bold text-4xl tracking-tight text-primary-foreground;
+  @apply font-display-bold text-4xl tracking-tight text-white;
 }
 @utility home-balance-date {
-  @apply font-sans-medium text-sm text-primary-foreground/80;
+  @apply font-sans-medium text-sm text-white/80;
 }
 
 /* List section heading */
@@ -381,13 +381,13 @@
 
 /* Buttons */
 @utility btn {
-  @apply min-h-12 items-center justify-center rounded-full bg-primary px-6;
+  @apply min-h-12 items-center justify-center rounded-full bg-primary px-6 active:scale-[0.98] active:opacity-90;
 }
 @utility btn-text {
   @apply font-sans-bold text-base text-primary-foreground;
 }
 @utility btn-outline {
-  @apply min-h-11 items-center justify-center rounded-full border border-border px-5;
+  @apply min-h-11 items-center justify-center rounded-full border border-border px-5 active:scale-[0.98] active:bg-muted;
 }
 @utility btn-outline-text {
   @apply font-sans-semibold text-sm text-foreground;
@@ -555,7 +555,7 @@
 
 /* ── Header buttons ──────────────────────────────────────────────────────── */
 @utility icon-btn {
-  @apply size-11 items-center justify-center rounded-full bg-primary;
+  @apply size-11 items-center justify-center rounded-full bg-primary active:scale-95 active:opacity-90;
 }
 @utility icon-btn-glyph {
   @apply text-2xl text-primary-foreground;
@@ -569,10 +569,10 @@
   @apply font-sans text-sm text-muted-foreground;
 }
 @utility home-balance-foot {
-  @apply mt-3 flex-row items-center justify-between border-t border-primary-foreground/20 pt-3;
+  @apply mt-3 flex-row items-center justify-between border-t border-white/20 pt-3;
 }
 @utility home-balance-sub {
-  @apply font-sans-medium text-xs text-primary-foreground/80;
+  @apply font-sans-medium text-xs text-white/80;
 }
 @utility empty-card {
   @apply items-center rounded-3xl border border-dashed border-border bg-card px-6 py-8;

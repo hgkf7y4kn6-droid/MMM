@@ -109,13 +109,23 @@ period ends. `expired`, `paused` and `incomplete` → Free. An `active` row whos
 
 ## Brand and design tokens
 
+The brand board is `docs/brand/brand-board.jpg`.
+
 - **Palette:** Trustworthy Teal `#3a6b7e` (primary), Stable Slate `#59656f` (secondary text), Growth Green
   `#4da167` (fills; text uses the darker `success` `#2b7746`) and Prosperous Gold `#d7b740` (highlights; text
   uses `gold-deep` `#7f6410`). Gold and green fail WCAG contrast as text on light surfaces, so the bright values
-  are for fills only. Tokens live in `global.css` and are mirrored in `constants/theme.ts`; change both.
-- **Type:** Plus Jakarta Sans for the interface, Fraunces (semibold, bold) for headlines and large figures
-  (`font-display`, `font-display-bold`). Both are bundled in `assets/fonts` under the SIL OFL.
+  are for fills only. Light surfaces are the board's warm cream (`#fbf7ec`) with deep-teal text and hero
+  panels (`#0e3b45`). Tokens live in `global.css` and are mirrored in `constants/theme.ts`; change both.
+- **Type:** Plus Jakarta Sans for the interface and the wordmark, Fraunces (semibold, bold) for headlines and
+  large figures (`font-display`, `font-display-bold`). Both are bundled in `assets/fonts` under the SIL OFL.
+- **Mark:** `components/logo.tsx` draws the K mark (leaf, blades, gold sun) as SVG with gradients. The app icons
+  in `assets/images` are rendered from the same geometry.
 - **Landing page:** signed-out visitors open on `app/(auth)/welcome.tsx`. It uses sample figures labelled as
   such; keep any claim there true to the product.
-- **Mark:** `components/logo.tsx` draws the logo as SVG; the app icons in `assets/images` are rendered from the
-  same geometry. A designed logo can replace both.
+- **Motion:** `components/reveal` (fade and lift on scroll), `components/magnetic` (buttons follow the pointer)
+  and `lib/use-smooth-scroll` (Lenis inertial scrolling) are web-only effects, ported from the GSAP-Web-dom
+  repo's approach. They apply to fine pointers only and switch off under reduced motion.
+- **3D hero:** `components/hero-scene.tsx` (three.js through react-three-fiber) is rendered by `hero-3d.web.tsx`
+  in browsers and `hero-3d.tsx` through expo-gl on iOS and Android. It loads on demand (its own 900 kB chunk on
+  the web) and falls back to the logo if WebGL is unavailable. The native renderer needs Expo Go or a
+  development build and has not been run on a device yet.

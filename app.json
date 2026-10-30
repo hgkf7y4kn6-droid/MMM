@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#3a6b7e",
+        "backgroundColor": "#fff8e6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -30,8 +30,8 @@
       "name": "KaventaFi",
       "shortName": "KaventaFi",
       "description": "Track every subscription, research dividend growth stocks and measure your portfolio against the S&P 500.",
-      "themeColor": "#3a6b7e",
-      "backgroundColor": "#f4f7f8",
+      "themeColor": "#0e3b45",
+      "backgroundColor": "#fbf7ec",
       "lang": "en"
     },
     "plugins": [
@@ -42,9 +42,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 220,
           "resizeMode": "contain",
-          "backgroundColor": "#f4f7f8",
+          "backgroundColor": "#fbf7ec",
           "dark": {
-            "backgroundColor": "#0b1519"
+            "backgroundColor": "#0b1d23"
           }
         }
       ],
