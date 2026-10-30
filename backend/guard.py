@@ -129,6 +129,38 @@ class GuardMiddleware:
             return await _reject(send, 413, "Request body too large.")
 
 
+SECURITY_HEADERS = [
+    (b"x-content-type-options", b"nosniff"),
+    (b"referrer-policy", b"no-referrer"),
+    (b"x-frame-options", b"DENY"),
+    (b"cache-control", b"no-store"),
+    (b"strict-transport-security", b"max-age=31536000; includeSubDomains"),
+    (b"content-security-policy", b"default-src 'none'; frame-ancestors 'none'"),
+]
+
+
+class SecurityHeadersMiddleware:
+    """Adds baseline response headers to every API response (JSON only, so the CSP is fully closed)."""
+
+    def __init__(self, app) -> None:
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            return await self.app(scope, receive, send)
+
+        async def send_with_headers(message):
+            if message["type"] == "http.response.start":
+                present = {k.lower() for k, _ in message.get("headers", [])}
+                message = dict(message)
+                message["headers"] = list(message.get("headers", [])) + [
+                    h for h in SECURITY_HEADERS if h[0] not in present
+                ]
+            await send(message)
+
+        return await self.app(scope, receive, send_with_headers)
+
+
 class _TooLarge(Exception):
     pass
 

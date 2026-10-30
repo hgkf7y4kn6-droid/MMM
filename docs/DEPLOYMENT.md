@@ -16,6 +16,8 @@
 | `mmm-api` | Python web service, `PYTHON_VERSION=3.12.7` | `cd backend && pip install -r requirements.txt` | `cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT` |
 | `mmm-web` | Static site | `npm ci && npx expo export --platform web` | publish `dist`; add a rewrite rule `/*` → `/index.html` (the web app is a single-page app) |
 
+The API adds baseline security headers to every response and hides `/docs`, `/redoc` and `/openapi.json` when `APP_ENV=production`. Set the `mmm-api` health check path to `/` in Render.
+
 `EXPO_PUBLIC_API_URL` on `mmm-web` is read at **build** time, so redeploy the site after changing it. Add
 the site's URL to `ALLOWED_ORIGINS` on `mmm-api`.
 
