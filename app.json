@@ -58,6 +58,8 @@
             "./assets/fonts/PlusJakartaSans-SemiBold.ttf",
             "./assets/fonts/PlusJakartaSans-ExtraBold.ttf",
             "./assets/fonts/PlusJakartaSans-Light.ttf",
+            "./assets/fonts/Nunito_800ExtraBold.ttf",
+            "./assets/fonts/Nunito_900Black.ttf",
             "./assets/fonts/Fraunces_600SemiBold.ttf",
             "./assets/fonts/Fraunces_700Bold.ttf"
           ]

@@ -57,6 +57,9 @@
   --font-sans-semibold: "sans-semibold";
   --font-sans-bold: "sans-bold";
   --font-sans-extrabold: "sans-extrabold";
+  /* Rounded brand face (Nunito) for the wordmark */
+  --font-brand: "brand-black";
+  --font-brand-bold: "brand-extrabold";
   /* Display serif (Fraunces) for headlines and large figures */
   --font-display: "display-semibold";
   --font-display-bold: "display-bold";

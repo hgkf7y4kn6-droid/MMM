@@ -42,7 +42,7 @@ function Routes() {
   if (!isLoaded) {
     return (
       <View className="auth-gate">
-        <Logo size={48} />
+        <Logo size={44} tagline />
         <ActivityIndicator className="mt-6" color={colors[dark ? "dark" : "light"].primary} />
       </View>
     );
@@ -74,6 +74,8 @@ export default function RootLayout() {
     "sans-semibold": require("../assets/fonts/PlusJakartaSans-SemiBold.ttf"),
     "sans-extrabold": require("../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
+    "brand-extrabold": require("../assets/fonts/Nunito_800ExtraBold.ttf"),
+    "brand-black": require("../assets/fonts/Nunito_900Black.ttf"),
     "display-semibold": require("../assets/fonts/Fraunces_600SemiBold.ttf"),
     "display-bold": require("../assets/fonts/Fraunces_700Bold.ttf"),
   });

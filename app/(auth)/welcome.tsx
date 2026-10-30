@@ -134,7 +134,7 @@ export default function Welcome() {
         <LinearGradient colors={grad} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
           <View className="w-full max-w-[1080px] self-center px-6 pb-14 pt-6">
             <View className="mb-8 flex-row items-center justify-between">
-              <Logo size={34} light />
+              <Logo size={30} light />
               <Link href="/sign-in" accessibilityRole="link">
                 <Text className="font-sans-semibold text-sm text-white">Sign in</Text>
               </Link>
@@ -287,8 +287,7 @@ export default function Welcome() {
 
         <View className="bg-background">
           <View className="w-full max-w-[1080px] items-center gap-3 self-center px-6 py-8">
-            <Logo size={28} />
-            <Text className="font-sans-semibold text-xs uppercase tracking-[3px] text-muted-foreground">Finances with purpose</Text>
+            <Logo size={30} tagline />
             <Link href="/disclosures" accessibilityRole="link">
               <Text className="font-sans-semibold text-sm text-primary underline">Methodology &amp; disclosures</Text>
             </Link>

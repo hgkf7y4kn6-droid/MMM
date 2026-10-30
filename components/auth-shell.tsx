@@ -35,7 +35,7 @@ export function AuthShell({
         <ScrollView contentContainerClassName="auth-content" keyboardShouldPersistTaps="handled">
           <View>
             <Link href="/welcome" accessibilityRole="link" accessibilityLabel="KaventaFi home">
-              <Logo size={44} />
+              <Logo size={34} tagline />
             </Link>
             <Text className="auth-title" accessibilityRole="header">
               {title}

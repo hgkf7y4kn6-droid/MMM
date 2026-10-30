@@ -109,17 +109,20 @@ period ends. `expired`, `paused` and `incomplete` → Free. An `active` row whos
 
 ## Brand and design tokens
 
-The brand board is `docs/brand/brand-board.jpg`.
+Brand references are in `docs/brand`: `brand-board.jpg`, `logo-lockup.jpg` and `app-icon-tile.jpg`.
 
 - **Palette:** Trustworthy Teal `#3a6b7e` (primary), Stable Slate `#59656f` (secondary text), Growth Green
   `#4da167` (fills; text uses the darker `success` `#2b7746`) and Prosperous Gold `#d7b740` (highlights; text
   uses `gold-deep` `#7f6410`). Gold and green fail WCAG contrast as text on light surfaces, so the bright values
   are for fills only. Light surfaces are the board's warm cream (`#fbf7ec`) with deep-teal text and hero
   panels (`#0e3b45`). Tokens live in `global.css` and are mirrored in `constants/theme.ts`; change both.
-- **Type:** Plus Jakarta Sans for the interface and the wordmark, Fraunces (semibold, bold) for headlines and
+- **Type:** Plus Jakarta Sans for the interface, Nunito Black and ExtraBold for the wordmark and tagline
+  (`font-brand`, `font-brand-bold`), Fraunces (semibold, bold) for headlines and
   large figures (`font-display`, `font-display-bold`). Both are bundled in `assets/fonts` under the SIL OFL.
-- **Mark:** `components/logo.tsx` draws the K mark (leaf, blades, gold sun) as SVG with gradients. The app icons
-  in `assets/images` are rendered from the same geometry.
+- **Mark:** `components/logo.tsx` draws the K mark (leaf, blades, gold sun) as SVG with gradients, sampled from
+  the lockup image. The app icons in `assets/images` use the same geometry on a frosted-glass tile with a soft
+  green, aqua and gold glow, as in `app-icon-tile.jpg`. They were rendered from HTML; replace them with the
+  original vector artwork if it becomes available.
 - **Landing page:** signed-out visitors open on `app/(auth)/welcome.tsx`. It uses sample figures labelled as
   such; keep any claim there true to the product.
 - **Motion:** `components/reveal` (fade and lift on scroll), `components/magnetic` (buttons follow the pointer)
