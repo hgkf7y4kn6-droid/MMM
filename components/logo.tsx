@@ -1,49 +1,75 @@
 import { useId } from "react";
 import { Text, View } from "react-native";
-import Svg, { Circle, Defs, G, LinearGradient, Mask, Path, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Circle, ClipPath, Defs, G, LinearGradient, Path, RadialGradient, Stop } from "react-native-svg";
 
 import { useThemeColors } from "@/lib/theme";
 
-const LEAF = "M16 90 C28 56 58 32 95 18 C90 54 58 82 16 90 Z";
+// Mark geometry, traced from the brand board (docs/brand/brand-board.jpg).
+// Paths share one coordinate space; VIEWBOX centers them in a square.
+export const MARK_VIEWBOX = "-45 20 960 960";
+const STEM = "M285 85 C205 92 110 125 65 245 L65 682 C80 625 115 565 150 520 C200 455 250 415 285 380 Z";
+const LOBE = "M285 85 C205 92 110 125 65 245 L65 570 C120 520 150 400 175 290 C195 200 235 130 285 85 Z";
+const LEAF =
+  "M65 955 C70 800 110 680 210 560 C300 455 420 385 560 340 C640 315 700 275 738 228 C742 345 700 445 590 510 C490 570 400 590 320 645 C240 700 190 770 150 835 C115 890 90 925 65 955 Z";
+const LEAF_LIGHT =
+  "M65 955 C70 800 110 680 210 560 C300 455 420 385 560 340 C640 315 700 275 738 228 C660 360 530 450 390 520 C290 570 210 640 150 740 C110 810 80 880 65 955 Z";
+const LEG = "M260 718 C340 670 410 630 470 612 L805 945 C720 955 600 955 520 950 C420 935 330 830 260 718 Z";
+const LEG_SHADE = "M260 718 C330 706 410 725 480 790 C560 860 650 925 805 945 C700 955 600 955 520 950 C420 935 330 830 260 718 Z";
 
 /**
- * The KaventaFi mark: a K made of a leaf and two blades, with a gold sun.
+ * The KaventaFi mark: a K made of a stem, a leaf and a leg, with a gold sun.
  * Gradient ids are per instance so several marks can share a page.
  */
 export function LogoMark({ size = 40 }: { size?: number }) {
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
-  const g = (name: string) => `${name}${id}`;
+  const n = (name: string) => `${name}${id}`;
+  const u = (name: string) => `url(#${n(name)})`;
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 100" accessibilityLabel="KaventaFi">
+    <Svg width={size} height={size} viewBox={MARK_VIEWBOX} accessibilityLabel="KaventaFi">
       <Defs>
-        <LinearGradient id={g("blade")} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#2FA6B0" />
-          <Stop offset="1" stopColor="#2F5F7A" />
+        <LinearGradient id={n("stem")} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#3CA98A" />
+          <Stop offset="0.45" stopColor="#2F7F8F" />
+          <Stop offset="1" stopColor="#26496A" />
         </LinearGradient>
-        <LinearGradient id={g("leaf")} x1="0" y1="1" x2="1" y2="0">
-          <Stop offset="0" stopColor="#2FA564" />
-          <Stop offset="0.6" stopColor="#4DBE5A" />
-          <Stop offset="1" stopColor="#A5E34E" />
+        <LinearGradient id={n("lobe")} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#2FE0C6" />
+          <Stop offset="0.5" stopColor="#2C9FB0" />
+          <Stop offset="1" stopColor="#2B6A8C" />
         </LinearGradient>
-        <LinearGradient id={g("leg")} x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor="#2F5F7A" />
-          <Stop offset="1" stopColor="#2BD4C4" />
+        <LinearGradient id={n("leafDark")} x1="1" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#4FA567" />
+          <Stop offset="0.6" stopColor="#37966A" />
+          <Stop offset="1" stopColor="#2E8A72" />
         </LinearGradient>
-        <RadialGradient id={g("sun")} cx="0.35" cy="0.3" r="0.8">
-          <Stop offset="0" stopColor="#F8DC73" />
-          <Stop offset="1" stopColor="#D79A1E" />
+        <LinearGradient id={n("leafLight")} x1="1" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor="#A4E64D" />
+          <Stop offset="0.55" stopColor="#7DD14E" />
+          <Stop offset="1" stopColor="#4FB566" />
+        </LinearGradient>
+        <LinearGradient id={n("leg")} x1="0" y1="0" x2="1" y2="1">
+          <Stop offset="0" stopColor="#2D5B7C" />
+          <Stop offset="0.55" stopColor="#3C8FA7" />
+          <Stop offset="1" stopColor="#32EAD2" />
+        </LinearGradient>
+        <RadialGradient id={n("sun")} cx="0.62" cy="0.22" r="0.95">
+          <Stop offset="0" stopColor="#FCE790" />
+          <Stop offset="0.45" stopColor="#E8BC45" />
+          <Stop offset="1" stopColor="#CF9124" />
         </RadialGradient>
-        <Mask id={g("gap")}>
-          <Rect width={100} height={100} fill="#ffffff" />
-          <Path d={LEAF} fill="#000000" stroke="#000000" strokeWidth={5} strokeLinejoin="round" />
-        </Mask>
+        <ClipPath id={n("leafClip")}>
+          <Path d={LEAF} />
+        </ClipPath>
       </Defs>
-      <G mask={`url(#${g("gap")})`}>
-        <Path d="M30 8 C16 18 10 44 10 94 C24 78 40 52 42 30 C42 20 38 12 30 8 Z" fill={`url(#${g("blade")})`} />
-        <Path d="M36 66 C50 60 64 70 90 96 L46 96 C38 88 34 78 36 66 Z" fill={`url(#${g("leg")})`} />
+      <Path d={STEM} fill={u("stem")} />
+      <Path d={LOBE} fill={u("lobe")} />
+      <Path d={LEAF} fill={u("leafDark")} />
+      <G clipPath={u("leafClip")}>
+        <Path d={LEAF_LIGHT} fill={u("leafLight")} />
       </G>
-      <Path d={LEAF} fill={`url(#${g("leaf")})`} />
-      <Circle cx={72} cy={12} r={11} fill={`url(#${g("sun")})`} />
+      <Path d={LEG} fill={u("leg")} />
+      <Path d={LEG_SHADE} fill="#27506F" fillOpacity={0.7} />
+      <Circle cx={532} cy={168} r={123} fill={u("sun")} />
     </Svg>
   );
 }
@@ -52,11 +78,11 @@ export function LogoMark({ size = 40 }: { size?: number }) {
 export function Logo({ size = 36, light }: { size?: number; light?: boolean }) {
   const colors = useThemeColors();
   return (
-    <View className="flex-row items-center gap-2" accessibilityRole="image" accessibilityLabel="KaventaFi">
-      <LogoMark size={size} />
+    <View className="flex-row items-center gap-1" accessibilityRole="image" accessibilityLabel="KaventaFi">
+      <LogoMark size={size * 1.5} />
       <Text
         className="font-sans-extrabold tracking-tight"
-        style={{ fontSize: size * 0.7, color: light ? "#ffffff" : colors.wordmark }}
+        style={{ fontSize: size * 0.72, color: light ? "#ffffff" : colors.wordmark }}
       >
         Kaventa<Text style={{ color: colors.growth }}>Fi</Text>
       </Text>
