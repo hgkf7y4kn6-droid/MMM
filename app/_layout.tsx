@@ -1,13 +1,13 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { useFonts } from "expo-font";
-import { Image } from "expo-image";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { SplashScreen, Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Platform, useColorScheme, View } from "react-native";
 
+import { Logo } from "@/components/logo";
 import { CLERK_PUBLISHABLE_KEY } from "@/constants/config";
 import { colors } from "@/constants/theme";
 import { EntitlementsProvider } from "@/lib/entitlements";
@@ -42,7 +42,7 @@ function Routes() {
   if (!isLoaded) {
     return (
       <View className="auth-gate">
-        <Image source={require("../assets/images/logo.png")} style={{ width: 102, height: 60 }} contentFit="contain" />
+        <Logo size={48} />
         <ActivityIndicator className="mt-6" color={colors[dark ? "dark" : "light"].primary} />
       </View>
     );
@@ -74,6 +74,8 @@ export default function RootLayout() {
     "sans-semibold": require("../assets/fonts/PlusJakartaSans-SemiBold.ttf"),
     "sans-extrabold": require("../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
     "sans-light": require("../assets/fonts/PlusJakartaSans-Light.ttf"),
+    "display-semibold": require("../assets/fonts/Fraunces_600SemiBold.ttf"),
+    "display-bold": require("../assets/fonts/Fraunces_700Bold.ttf"),
   });
 
   useEffect(() => {

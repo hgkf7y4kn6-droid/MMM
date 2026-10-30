@@ -1,9 +1,10 @@
 import { useClerk } from "@clerk/expo";
-import { Image } from "expo-image";
+import { Link } from "expo-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 
 import { Icon } from "@/components/icon";
+import { Logo } from "@/components/logo";
 import { SafeAreaView } from "@/components/safe-area-view";
 import type { IconName } from "@/constants/icons";
 import { useThemeColors } from "@/lib/theme";
@@ -33,13 +34,9 @@ export function AuthShell({
       <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerClassName="auth-content" keyboardShouldPersistTaps="handled">
           <View>
-            <Image
-              source={require("../assets/images/logo.png")}
-              style={{ width: 102, height: 60 }}
-              contentFit="contain"
-              accessibilityLabel="KaventaFi"
-            />
-            <Text className="auth-wordmark">KaventaFi</Text>
+            <Link href="/welcome" accessibilityRole="link" accessibilityLabel="KaventaFi home">
+              <Logo size={44} />
+            </Link>
             <Text className="auth-title" accessibilityRole="header">
               {title}
             </Text>

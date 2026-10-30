@@ -106,3 +106,16 @@ States: `active` / `trialing` → Pro until period end + `GRACE_DAYS` (covers a 
 `past_due` → Pro until the provider's grace end, or period end + grace. `canceled` → Pro until the paid
 period ends. `expired`, `paused` and `incomplete` → Free. An `active` row whose period ended more than
 `GRACE_DAYS` ago is treated as expired, so a lost webhook can't grant access forever.
+
+## Brand and design tokens
+
+- **Palette:** Trustworthy Teal `#3a6b7e` (primary), Stable Slate `#59656f` (secondary text), Growth Green
+  `#4da167` (fills; text uses the darker `success` `#2b7746`) and Prosperous Gold `#d7b740` (highlights; text
+  uses `gold-deep` `#7f6410`). Gold and green fail WCAG contrast as text on light surfaces, so the bright values
+  are for fills only. Tokens live in `global.css` and are mirrored in `constants/theme.ts`; change both.
+- **Type:** Plus Jakarta Sans for the interface, Fraunces (semibold, bold) for headlines and large figures
+  (`font-display`, `font-display-bold`). Both are bundled in `assets/fonts` under the SIL OFL.
+- **Landing page:** signed-out visitors open on `app/(auth)/welcome.tsx`. It uses sample figures labelled as
+  such; keep any claim there true to the product.
+- **Mark:** `components/logo.tsx` draws the logo as SVG; the app icons in `assets/images` are rendered from the
+  same geometry. A designed logo can replace both.

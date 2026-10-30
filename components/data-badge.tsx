@@ -10,7 +10,7 @@ export default function DataBadge({ provenance }: { provenance: Pick<Provenance,
     <View className="badge-row">
       {provenance.demo ? (
         <View className="badge badge-warn" accessibilityLabel="Demo data: fictional companies, not market data">
-          <Icon name={icons.demo} className="text-xs text-gold" />
+          <Icon name={icons.demo} className="text-xs text-gold-deep" />
           <Text className="badge-text badge-warn-text">Demo data · not market data</Text>
         </View>
       ) : (
