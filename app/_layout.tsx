@@ -3,6 +3,7 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { useFonts } from "expo-font";
 import { DarkTheme, DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { router, SplashScreen, Stack, type Href } from "expo-router";
+import Head from "expo-router/head";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { ActivityIndicator, Platform, useColorScheme, View } from "react-native";
@@ -105,6 +106,13 @@ export default function RootLayout() {
         <EntitlementsProvider>
           <SubscriptionsProvider>
             <ThemeProvider value={navTheme(dark)}>
+              <Head>
+                {/* Distinct icon URLs so browsers drop a cached old favicon; the apple icon and manifest cover iOS and installs. */}
+                <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+                <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png" />
+                <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+                <link rel="manifest" href="/manifest.webmanifest" />
+              </Head>
               <StatusBar style={dark ? "light" : "dark"} />
               <Routes />
             </ThemeProvider>
