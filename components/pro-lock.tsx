@@ -6,6 +6,14 @@ import { Skeleton } from "@/components/skeleton";
 import { useEntitlements } from "@/lib/entitlements";
 
 export const PRO_FEATURE_COPY: Record<ProFeature, { title: string; pitch: string }> = {
+  account_linking: {
+    title: "Automatic account sync",
+    pitch: "Link your bank and brokerage once. Holdings, dividends and transactions update on their own — no more typing them in.",
+  },
+  auto_detect_subscriptions: {
+    title: "Subscriptions found for you",
+    pitch: "We scan your linked bank and card transactions for recurring charges. No receipts or statements to upload.",
+  },
   fcf_growth: { title: "Free cash flow growth", pitch: "Annual FCF history, margins and trend." },
   fcf_vs_benchmark: {
     title: "FCF growth vs the S&P 500",

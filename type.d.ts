@@ -333,9 +333,17 @@ declare global {
       market_value: number | null;
       annual_income: number | null;
       as_of: string | null;
+      /** Manual source only: what the user paid, gain over it, and dividends they recorded. */
+      cost_basis: number | null;
+      unrealized_gain: number | null;
+      dividends_received: number | null;
     }[];
     total_value: number;
     estimated_annual_income: number;
+    total_cost_basis: number | null;
+    total_unrealized_gain: number | null;
+    dividends_received_total: number | null;
+    source: "manual" | "linked" | "demo";
     estimated_yield: number | null;
     complete: boolean;
     income_received_ytd: number | null;
@@ -344,7 +352,78 @@ declare global {
     income_note: string;
   };
 
+  // ── Receipt / statement imports (backend/api_imports.py) ────────────────
+  type ImportStatus = "queued" | "processing" | "ready" | "failed" | "applied";
+  type ImportSource = "receipt" | "statement" | "csv" | "linked";
+
+  /** A subscription the import found; nothing is saved until the user adds it. */
+  type ImportCandidate = {
+    id: string;
+    name: string;
+    price: number;
+    currency: string;
+    billing: BillingCycle;
+    renewal_date: string;
+    category: string | null;
+    confidence: "high" | "medium" | "low";
+    reason: string;
+    occurrences: number;
+    last_charged: string | null;
+    plan: string | null;
+    already_tracked: boolean;
+    matched_subscription_id: string | null;
+    added_subscription_id?: string;
+    charges: { date: string; merchant: string; amount: number }[];
+  };
+
+  type ImportJob = {
+    id: string;
+    source: ImportSource;
+    filename: string | null;
+    status: ImportStatus;
+    error: string | null;
+    created_at: string | null;
+    finished_at: string | null;
+    transactions_found: number | null;
+    candidates: ImportCandidate[];
+    notes: string[];
+  };
+
+  type ImportsResponse = { imports: ImportJob[]; reads_photos: boolean; max_file_mb: number };
+
+  /** A file picked on the device, ready to upload. `file` is set on the web. */
+  type PickedFile = { uri: string; name: string; mimeType: string; file?: File | Blob };
+
+  // ── Hand-entered holdings (backend/api_holdings.py) ──────────────────────
+  type HoldingLotInput = {
+    symbol: string;
+    shares: number;
+    /** Total paid for the lot, fees included. */
+    cost_basis: number | null;
+    acquired_on: string | null;
+    account_label: string | null;
+    notes: string | null;
+  };
+  type HoldingLot = HoldingLotInput & { id: string; cost_per_share: number | null };
+
+  type DividendInput = { symbol: string; paid_on: string; amount: number; reinvested: boolean; notes: string | null };
+  type DividendEntry = DividendInput & { id: string };
+
+  type HoldingSummary = {
+    symbol: string;
+    shares: number;
+    cost_basis: number | null;
+    avg_cost: number | null;
+    lots: number;
+    dividends_total: number;
+    dividends_12m: number;
+  };
+
+  type HoldingsResponse = { lots: HoldingLot[]; dividends: DividendEntry[]; summary: HoldingSummary[] };
+
   type ProFeature =
+    | "account_linking"
+    | "auto_detect_subscriptions"
     | "fcf_growth"
     | "fcf_vs_benchmark"
     | "roic"
@@ -382,6 +461,8 @@ declare global {
     new_accounts_available?: boolean;
     last_synced_at: string | null;
     configured: boolean;
+    /** False on Free: linking accounts is Pro. */
+    allowed: boolean;
   };
 }
 

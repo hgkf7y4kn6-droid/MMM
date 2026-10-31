@@ -8,6 +8,7 @@ import StatusView from "@/components/status-view";
 import SubscriptionCard from "@/components/subscription-card";
 import { CATEGORIES, categoryFor } from "@/constants/categories";
 import { icons } from "@/constants/icons";
+import { openImports } from "@/lib/imports";
 import { addSubscription, editSubscription, useSubscriptions } from "@/lib/subscriptions";
 import { useThemeColors } from "@/lib/theme";
 import { formatCurrency } from "@/lib/utils";
@@ -84,9 +85,19 @@ export default function Subscriptions() {
               <Text className="screen-title" accessibilityRole="header">
                 Subscriptions
               </Text>
-              <Pressable className="icon-btn" onPress={addSubscription} accessibilityRole="button" accessibilityLabel="Add a subscription">
-                <Icon name="add" className="icon-btn-glyph" />
-              </Pressable>
+              <View className="flex-row gap-2">
+                <Pressable
+                  className="icon-btn"
+                  onPress={openImports}
+                  accessibilityRole="button"
+                  accessibilityLabel="Find subscriptions in a receipt or statement"
+                >
+                  <Icon name="scan" className="icon-btn-glyph" />
+                </Pressable>
+                <Pressable className="icon-btn" onPress={addSubscription} accessibilityRole="button" accessibilityLabel="Add a subscription">
+                  <Icon name="add" className="icon-btn-glyph" />
+                </Pressable>
+              </View>
             </View>
             <Text className="screen-subtitle">
               {summary?.monthly_total != null && counts.active
@@ -148,8 +159,11 @@ export default function Subscriptions() {
               <Text className="empty-card-text">
                 Add streaming, software, the gym — anything that bills you on repeat.
               </Text>
-              <Pressable className="btn mt-5 self-stretch" onPress={addSubscription} accessibilityRole="button">
-                <Text className="btn-text">Add a subscription</Text>
+              <Pressable className="btn mt-5 self-stretch" onPress={openImports} accessibilityRole="button">
+                <Text className="btn-text">Find them in a receipt or statement</Text>
+              </Pressable>
+              <Pressable className="btn-outline mt-3 self-stretch" onPress={addSubscription} accessibilityRole="button">
+                <Text className="btn-outline-text">Add one by hand</Text>
               </Pressable>
             </View>
           ) : (

@@ -18,6 +18,8 @@ from models import Account, Holding, InvestmentTransaction, PlaidItem
 
 @pytest.fixture(autouse=True)
 def clean_db(monkeypatch):
+    # Linking accounts is Pro; these tests exercise the linking flows themselves.
+    monkeypatch.setenv("COMPLIMENTARY_PRO_USER_IDS", "alice,bob")
     monkeypatch.setenv("FERNET_KEY", "x" * 43 + "=")
     import crypto
     crypto._fernet.cache_clear()

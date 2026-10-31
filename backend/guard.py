@@ -23,6 +23,9 @@ LIMITS = {"write": 30, "heavy": 60, "api": 300}
 WINDOW_SECONDS = 60
 MAX_CLIENTS = 20_000
 MAX_BODY_BYTES = 1024 * 1024
+# Receipt photos and statements (api_imports.MAX_FILE_BYTES, plus multipart overhead).
+UPLOAD_PREFIXES = ("/api/imports",)
+MAX_UPLOAD_BYTES = 11 * 1024 * 1024
 EXEMPT_PREFIXES = ("/api/billing/webhook", "/api/plaid/webhook")
 HEAVY_PREFIXES = ("/api/portfolio/", "/api/market/", "/api/stocks/")
 
@@ -106,11 +109,12 @@ class GuardMiddleware:
                                      {"retry-after": str(int(retry))})
         if not path.startswith("/api/"):
             return await self.app(scope, receive, send)
+        cap = MAX_UPLOAD_BYTES if method == "POST" and path.rstrip("/") in UPLOAD_PREFIXES else MAX_BODY_BYTES
         try:
             declared = int(headers.get("content-length") or 0)
         except ValueError:
             declared = 0
-        if declared > MAX_BODY_BYTES:
+        if declared > cap:
             return await _reject(send, 413, "Request body too large.")
         received = 0
 
@@ -119,7 +123,7 @@ class GuardMiddleware:
             message = await receive()
             if message["type"] == "http.request":
                 received += len(message.get("body", b""))
-                if received > MAX_BODY_BYTES:
+                if received > cap:
                     raise _TooLarge()
             return message
 

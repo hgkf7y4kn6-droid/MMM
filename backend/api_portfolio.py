@@ -1,7 +1,8 @@
 """Portfolio endpoints.
 
 Ledger sources
-    linked   the caller's Plaid investment transactions (stored by the sync tasks)
+    manual   holdings, cost basis and dividends the caller entered by hand (api_holdings; Free)
+    linked   the caller's Plaid investment transactions (stored by the sync tasks; Pro: account_linking)
     demo     the sample portfolio (providers.demo), labeled demo
     POST     a ledger in the request body (manually entered holdings); used
              only for that response, never stored
@@ -24,8 +25,9 @@ from analytics import income as income_engine, portfolio as perf_engine
 from analytics.models import Ledger, LedgerTxn
 from auth import User, current_user
 from database import get_db
-from entitlements import Entitlement, require_feature
-from models import Holding, InvestmentTransaction
+import api_holdings
+from entitlements import Entitlement, entitlement, require_feature
+from models import Holding, InvestmentTransaction, ManualDividend, ManualHolding
 from plaid_ledger import to_ledger
 from providers.base import ProviderUnavailable, SymbolNotFound
 from providers.demo import demo_ledger
@@ -34,7 +36,7 @@ from providers.registry import providers
 router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])
 MAX_SYMBOLS = 60
 MAX_TXNS = 5000
-Source = Literal["linked", "demo"]
+Source = Literal["manual", "linked", "demo"]
 
 
 class TxnIn(BaseModel):
@@ -73,9 +75,20 @@ class LedgerIn(BaseModel):
     target_growth: float = Field(income_engine.DEFAULT_TARGET_GROWTH, ge=0, le=1)
 
 
-def _load_ledger(source: str, user: User, db: Session) -> tuple[Ledger, list[str], bool]:
+def _load_ledger(source: str, user: User, db: Session, ent: Entitlement | None = None) -> tuple[Ledger, list[str], bool]:
     if source == "demo":
         return Ledger.from_txns(demo_ledger()), [], True
+    if source == "manual":
+        lots = db.query(ManualHolding).filter(ManualHolding.user_id == user.id).all()
+        divs = db.query(ManualDividend).filter(ManualDividend.user_id == user.id).all()
+        txns, notes = api_holdings.to_ledger(lots, divs)
+        return Ledger.from_txns(txns), notes, False
+    if ent is not None and not ent.allows("account_linking"):
+        # Linked accounts are Pro. A lapsed Pro account can still export its synced data (Settings).
+        raise HTTPException(status_code=402, detail={
+            "code": "pro_required", "feature": "account_linking", "label": "Linked accounts",
+            "message": "Linked brokerage accounts are part of KaventaFi Pro. Enter your holdings by hand on Free.",
+            "status": ent.status})
     rows = db.query(InvestmentTransaction).filter(InvestmentTransaction.user_id == user.id).all()
     held: dict[str, float] = {}
     holding_rows = db.query(Holding).filter(Holding.user_id == user.id).all()
@@ -115,8 +128,9 @@ def _not_empty(ledger: Ledger, source: str):
     if not ledger.txns:
         raise HTTPException(status_code=404, detail={
             "code": "no_portfolio",
-            "message": "No investment transactions yet. Link a brokerage account, or try the sample portfolio."
-            if source == "linked" else "The ledger is empty."})
+            "message": {"linked": "No investment transactions yet. Link a brokerage account, or try the sample portfolio.",
+                        "manual": "No holdings yet. Add the shares you own to see their value and income."
+                        }.get(source, "The ledger is empty.")})
 
 
 async def _performance(ledger: Ledger, notes: list[str], demo: bool, windows: str | None) -> dict:
@@ -161,14 +175,21 @@ async def _income(ledger: Ledger, notes: list[str], demo: bool, target: float, e
 
 
 @router.get("/overview")
-async def overview(source: Source = "linked", user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """Free: current holdings, value and estimated annual income (no history, no benchmark)."""
-    ledger, notes, demo = _load_ledger(source, user, db)
+async def overview(source: Source = "linked", user: User = Depends(current_user), db: Session = Depends(get_db),
+                   ent: Entitlement = Depends(entitlement)):
+    """Free: current holdings, value and estimated annual income (no history, no benchmark).
+    The manual source adds cost basis, unrealized gain and dividends received per holding."""
+    ledger, notes, demo = _load_ledger(source, user, db, ent)
     _not_empty(ledger, source)
     p = providers()
     use_demo = demo or p.mode == "demo" or _demo_ledger_symbols(ledger)
     out = income_engine.analyze(ledger, as_of=date.today())
     pos = income_engine.Positions(ledger)
+    basis: dict[str, dict] = {}
+    if source == "manual":
+        lots = db.query(ManualHolding).filter(ManualHolding.user_id == user.id).all()
+        divs = db.query(ManualDividend).filter(ManualDividend.user_id == user.id).all()
+        basis = {r["symbol"]: r for r in api_holdings.summarize(lots, divs)}
     holdings = []
     total_value = total_income = 0.0
     complete = True
@@ -185,9 +206,27 @@ async def overview(source: Source = "linked", user: User = Depends(current_user)
         complete = complete and value is not None and inc is not None
         total_value += value or 0
         total_income += inc or 0
-        holdings.append({"symbol": s, "shares": shares, "price": q.price if q else None, "market_value": value,
-                         "annual_income": inc, "as_of": q.as_of if q else None})
-    return {"holdings": holdings, "total_value": total_value, "estimated_annual_income": total_income,
+        row = {"symbol": s, "shares": shares, "price": q.price if q else None, "market_value": value,
+               "annual_income": inc, "as_of": q.as_of if q else None, "cost_basis": None, "unrealized_gain": None,
+               "dividends_received": None}
+        if s in basis:
+            b = basis[s]
+            row["cost_basis"] = b["cost_basis"]
+            row["dividends_received"] = b["dividends_total"]
+            if b["cost_basis"] is not None and value is not None:
+                row["unrealized_gain"] = value - b["cost_basis"]
+        holdings.append(row)
+    known_basis = [h for h in holdings if h["cost_basis"] is not None]
+    totals = {
+        "total_cost_basis": sum(h["cost_basis"] for h in known_basis) if source == "manual" and known_basis else None,
+        "total_unrealized_gain": (sum(h["unrealized_gain"] for h in known_basis)
+                                  if source == "manual" and known_basis and all(h["unrealized_gain"] is not None
+                                                                               for h in known_basis) else None),
+        "dividends_received_total": (round(sum(b["dividends_total"] for b in basis.values()), 2)
+                                     if source == "manual" else None),
+    }
+    return {"holdings": holdings, "total_value": total_value, "estimated_annual_income": total_income, **totals,
+            "source": source,
             "estimated_yield": total_income / total_value if total_value and complete else None, "complete": complete,
             "income_received_ytd": (out.get("current_year_to_date") or {}).get("income"),
             "notes": notes, "demo": use_demo,
@@ -197,8 +236,8 @@ async def overview(source: Source = "linked", user: User = Depends(current_user)
 @router.get("/performance")
 async def performance_linked(source: Source = "linked", windows: str | None = Query(None, max_length=60),
                              user: User = Depends(current_user), db: Session = Depends(get_db),
-                             _: Entitlement = Depends(require_feature("portfolio_performance"))):
-    ledger, notes, demo = _load_ledger(source, user, db)
+                             ent: Entitlement = Depends(require_feature("portfolio_performance"))):
+    ledger, notes, demo = _load_ledger(source, user, db, ent)
     _not_empty(ledger, source)
     return await _performance(ledger, notes, demo or _demo_ledger_symbols(ledger), windows)
 
@@ -215,7 +254,7 @@ async def performance_posted(body: LedgerIn, windows: str | None = Query(None, m
 async def income_linked(source: Source = "linked", target: float = Query(income_engine.DEFAULT_TARGET_GROWTH, ge=0, le=1),
                         user: User = Depends(current_user), db: Session = Depends(get_db),
                         ent: Entitlement = Depends(require_feature("portfolio_income_growth"))):
-    ledger, notes, demo = _load_ledger(source, user, db)
+    ledger, notes, demo = _load_ledger(source, user, db, ent)
     _not_empty(ledger, source)
     return await _income(ledger, notes, demo or _demo_ledger_symbols(ledger), target, ent)
 

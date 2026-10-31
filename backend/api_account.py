@@ -22,7 +22,8 @@ from auth import User, current_user
 from crypto import decrypt
 from database import get_db
 from entitlements import FREE_FEATURES, PRO_FEATURES, resolve
-from models import Account, Holding, BillingEvent, InvestmentTransaction, PlaidItem, Subscription, TrackedSubscription, Transaction, TransferEvent
+from models import (Account, Holding, BillingEvent, ImportJob, InvestmentTransaction, ManualDividend, ManualHolding,
+                    PlaidItem, Subscription, TrackedSubscription, Transaction, TransferEvent)
 
 log = logging.getLogger("account")
 router = APIRouter(prefix="/api", tags=["account"])
@@ -31,8 +32,8 @@ router = APIRouter(prefix="/api", tags=["account"])
 def _row(obj) -> dict:
     out = {}
     for col in obj.__table__.columns:
-        if col.name == "access_token_encrypted":
-            continue                       # a credential, not the user's data
+        if col.name in ("access_token_encrypted", "file_data"):
+            continue                       # a credential / a transient upload, not the user's data
         v = getattr(obj, col.name)
         out[col.name] = v.isoformat() if hasattr(v, "isoformat") else v
     return out
@@ -59,6 +60,7 @@ async def export(user: User = Depends(current_user), db: Session = Depends(get_d
             "linked_institution": _row(item) if item else None, "accounts": rows(Account), "holdings": rows(Holding),
             "transactions": rows(Transaction), "investment_transactions": rows(InvestmentTransaction),
             "transfers": rows(TransferEvent), "tracked_subscriptions": rows(TrackedSubscription),
+            "manual_holdings": rows(ManualHolding), "manual_dividends": rows(ManualDividend), "imports": rows(ImportJob),
             "subscription": _row(sub) if sub else None}
 
 
@@ -85,7 +87,8 @@ async def delete_account(user: User = Depends(current_user), db: Session = Depen
                 raise HTTPException(status_code=502, detail="We couldn't disconnect your bank with Plaid, so "
                                     "nothing was deleted. Please try again in a few minutes.")
     counts = {}
-    for model in (Transaction, InvestmentTransaction, Holding, Account, TransferEvent, PlaidItem, TrackedSubscription):
+    for model in (Transaction, InvestmentTransaction, Holding, Account, TransferEvent, PlaidItem, TrackedSubscription,
+                  ManualHolding, ManualDividend, ImportJob):
         counts[model.__tablename__] = db.query(model).filter(model.user_id == user.id).delete()
     sub = db.get(Subscription, user.id)
     kept_subscription = bool(sub and resolve(user, db).status in ("active", "trialing", "grace"))

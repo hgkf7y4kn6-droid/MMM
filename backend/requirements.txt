@@ -9,3 +9,5 @@ python-dotenv==1.0.1
 celery[redis]==5.4.0
 plaid-python==46.0.0
 python-dateutil>=2.9
+anthropic==2.3.0
+python-multipart==0.0.33

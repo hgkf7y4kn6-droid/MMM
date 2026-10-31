@@ -90,6 +90,10 @@ growth model; portfolio performance across nine windows (TWR, MWR, volatility, d
 | Capital allocation | — | ✓ | `require_feature("capital_allocation")` on `/capital-allocation` |
 | CSV export of analyses | — | ✓ | `require_feature("export")` on `/export.csv` |
 | Portfolio overview | ✓ | ✓ | `current_user` |
+| Hand-entered holdings, cost basis, dividends | ✓ | ✓ | `current_user` (`/api/holdings`, portfolio `source=manual`) |
+| Find subscriptions in uploaded receipts / statements | ✓ | ✓ | `current_user`; per-user daily cap (`IMPORT_DAILY_LIMIT`, ×5 on Pro) |
+| Link bank / brokerage accounts (Plaid) | — | ✓ | `require_feature("account_linking")` on create-link-token, exchange, reconnected, sync, and portfolio `source=linked` |
+| Find subscriptions in linked transactions | — | ✓ | `require_feature("auto_detect_subscriptions")` on `POST /api/imports/linked` |
 | Portfolio performance (9 windows) | — | ✓ | `require_feature("portfolio_performance")` on GET and POST `/api/portfolio/performance` |
 | Income growth and attribution | — | ✓ | `require_feature("portfolio_income_growth")` on GET and POST `/api/portfolio/income` |
 | Income vs S&P 500 | — | ✓ | Benchmark omitted from the response unless `portfolio_income_vs_benchmark` is allowed |
@@ -106,6 +110,30 @@ States: `active` / `trialing` → Pro until period end + `GRACE_DAYS` (covers a 
 `past_due` → Pro until the provider's grace end, or period end + grace. `canceled` → Pro until the paid
 period ends. `expired`, `paused` and `incomplete` → Free. An `active` row whose period ended more than
 `GRACE_DAYS` ago is treated as expired, so a lost webhook can't grant access forever.
+
+## Free manual entry vs Pro automatic sync
+
+Free users never need to hand over bank credentials. They bring their own data:
+
+- **Receipts and statements** (`api_imports.py`). An upload is stored as an `ImportJob` and processed in the
+  background (`tasks.process_import_task`; a thread when there's no worker). CSV is parsed locally
+  (`subscription_detect.parse_csv`). Photos and PDFs go to Claude (`document_reader.py`), which returns only dates,
+  merchant names, amounts and any recurring-billing wording, constrained to a JSON schema with no field for account
+  numbers. Detection (`subscription_detect.detect`) is deterministic: a merchant charged 2+ times at a weekly,
+  monthly, quarterly or yearly interval for a similar amount; a document that says it renews; or a single charge
+  from a well-known subscription merchant (low confidence). Matches against already-tracked subscriptions are
+  flagged, not duplicated. The file bytes are cleared as soon as processing ends, success or failure; a job left
+  queued for 15 minutes reports as failed. The user reviews and edits candidates, and only `POST
+  /api/imports/{id}/apply` creates subscriptions.
+- **Holdings** (`api_holdings.py`). Lots (symbol, shares, total cost basis, optional purchase date and account
+  label) and dividend payments. `api_holdings.to_ledger` turns them into the same ledger the Plaid data produces:
+  a dated lot is a buy at its average cost, an undated lot an opening balance valued at market, and a dividend
+  before the first purchase of its symbol is left out and noted. The portfolio overview adds cost basis,
+  unrealized gain and dividends received for this source.
+
+Pro replaces both with Plaid: the same detector runs over synced bank transactions (transfers, income and loan
+payments excluded), and the portfolio reads synced investment transactions and holdings. A lapsed Pro account
+keeps its synced rows (exportable from Settings) but can't open the linked portfolio or refresh the link.
 
 ## Brand and design tokens
 

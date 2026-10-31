@@ -7,6 +7,7 @@
 | API | `uvicorn main:app --host 0.0.0.0 --port $PORT` from `backend/` | Python 3.12+, `pip install -r requirements.txt` |
 | Worker (optional) | `celery -A tasks worker -B --loglevel=info` from `backend/` (`-B` adds the 6-hourly fallback sync) | Redis (`REDIS_URL`). Without `REDIS_URL` the API runs syncs itself in a background thread, and refreshes a stale linked account when the portfolio is opened, so no paid worker is required to start. |
 | Database | Supabase Postgres (`DATABASE_URL`) | Tables are created and locked down at startup |
+| Document reader | Claude, through the Anthropic API (`ANTHROPIC_API_KEY`) | Reads receipt photos and PDF statements for subscription detection. Without it, imports accept CSV only. Each photo or PDF is one model call; `IMPORT_DAILY_LIMIT` (default 20 per user per day, ×5 on Pro) caps spend. Uploads run on the worker, or in a background thread without one. |
 | App | Expo / EAS builds; web via `npx expo export --platform web` | `EXPO_PUBLIC_API_URL` |
 
 ## Render
@@ -94,7 +95,9 @@ database created before this release:
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.sql        # idempotent
 psql "$DATABASE_URL" -f backend/migrations/002_plaid_sync_status.sql            # linked-account sync status
 psql "$DATABASE_URL" -f backend/migrations/003_holdings.sql                    # current holdings (opening balances)
+psql "$DATABASE_URL" -f backend/migrations/004_manual_entry.sql                # hand-entered holdings, receipt/statement imports
 # rollback (newest first):
+psql "$DATABASE_URL" -f backend/migrations/004_manual_entry.down.sql
 psql "$DATABASE_URL" -f backend/migrations/003_holdings.down.sql
 psql "$DATABASE_URL" -f backend/migrations/002_plaid_sync_status.down.sql
 psql "$DATABASE_URL" -f backend/migrations/001_portfolio_and_billing.down.sql

@@ -15,9 +15,16 @@ Live at **https://kaventafi.richesdigitalventures.com**.
 - **Subscriptions** — add what you pay for on repeat; see the monthly and yearly total, what renews next, and
   spend by category. Renewal dates roll forward automatically. Stored per account, so they follow you to every
   device.
+- **Find subscriptions (Free)** — photograph a receipt or upload a statement (PDF, image or CSV). A background job
+  reads it (Claude for photos and PDFs, a parser for CSV), finds charges that repeat or say they renew, and lists
+  them for review; nothing is added until you confirm. Uploaded files are deleted once read. No bank login.
 - **Dividend growth research** — revenue, EPS, free cash flow and dividend growth, ROIC and capital allocation,
   each figure with its source and formula (Pro for the deeper analyses).
-- **Portfolio** — income growth and time-weighted return against the S&P 500, from a brokerage account linked on the web app (up to 24 months of history; earlier positions are noted as not included) or a sample portfolio.
+- **Portfolio** — income growth and time-weighted return against the S&P 500, from holdings you enter by hand
+  (shares, cost basis, purchase date, dividends; Free), a brokerage account linked on the web app (Pro; up to 24
+  months of history, earlier positions noted as not included), or a sample portfolio.
+- **Pro removes the manual entry** — linking bank and brokerage accounts through Plaid keeps holdings, dividends and
+  transactions current automatically, and subscriptions are found in linked transactions with no uploads.
 - **Accounts** — sign-in is shared with Riches Analytics (one Riches Digital Ventures account). Export or delete
   your data any time from Settings.
 

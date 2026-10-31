@@ -322,3 +322,21 @@ def scrape_esg_data_task(target_url: str) -> dict:
     text = re.sub(r"<[^>]+>", " ", re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", html, flags=re.S | re.I))
     return {"url": target_url, "title": title.group(1).strip() if title else None,
             "excerpt": " ".join(text.split())[:2000], "fetched_at": date.today().isoformat()}
+
+
+@celery_app.task(autoretry_for=(OSError,), retry_backoff=True, max_retries=3)
+def process_import_task(job_id: str) -> str:
+    """Read an uploaded receipt or statement and detect subscriptions (api_imports.process).
+    The file is deleted when this finishes; a retried run on a finished job does nothing."""
+    import api_imports
+    from models import ImportJob
+
+    db = SessionLocal()
+    try:
+        job = db.get(ImportJob, job_id)
+        if job is None:
+            return "missing"
+        api_imports.process(db, job)
+        return job.status
+    finally:
+        db.close()

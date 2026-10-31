@@ -69,6 +69,11 @@ function Routes() {
         <Stack.Screen name="portfolio" />
         <Stack.Screen name="pro" />
         <Stack.Screen name="stocks/[symbol]" />
+        <Stack.Screen name="imports/index" />
+        <Stack.Screen name="imports/[id]" />
+        <Stack.Screen name="holdings/index" />
+        <Stack.Screen name="holdings/lot" options={{ presentation: "modal" }} />
+        <Stack.Screen name="holdings/dividend" options={{ presentation: "modal" }} />
       </Stack.Protected>
       <Stack.Protected guard={!isSignedIn}>
         <Stack.Screen name="(auth)" />

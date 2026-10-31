@@ -29,6 +29,8 @@ from database import get_db
 from models import Subscription
 
 PRO_FEATURES = {
+    "account_linking": "Automatic sync of bank and brokerage accounts (Plaid) instead of entering data by hand",
+    "auto_detect_subscriptions": "Subscriptions found automatically in linked bank transactions",
     "fcf_growth": "Free cash flow growth history and trend",
     "fcf_vs_benchmark": "Free cash flow growth vs the S&P 500",
     "roic": "ROIC history, ex-goodwill and incremental ROIC vs the S&P 500",
@@ -43,6 +45,8 @@ FREE_FEATURES = {
     "matrix": "Stock analysis matrix (growth, intensity, balance sheet, dividends)",
     "dividend_history": "Dividend yield and dividend history",
     "portfolio_overview": "Holdings and estimated annual income",
+    "statement_import": "Find subscriptions in receipt photos and statements you upload",
+    "manual_holdings": "Enter your own shares, cost basis and dividends",
     "data_export": "Export and delete your own data",
 }
 DEFAULT_GRACE_DAYS = 3
