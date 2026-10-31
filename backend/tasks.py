@@ -212,6 +212,25 @@ def _replace_holdings(db, user_id: str, resp) -> int:
     return n
 
 
+USER_PROMPTS = {"PENDING_EXPIRATION", "NEW_ACCOUNTS_AVAILABLE"}   # item notices only Link update mode clears
+
+
+def _drop_unreported(db, user_id: str, start: date, end: date, seen: set[str]) -> int:
+    """Brokerages cancel and correct trades after the fact; Plaid then stops returning the
+    original. Upserts alone would keep the stale row forever and count the trade twice, so
+    once a complete fetch is in hand, stored rows inside the fetched window that Plaid no
+    longer reports are removed. Rows older than the window are kept (Plaid only serves ~24
+    months, and they are the only record of earlier history). An empty response is not
+    trusted to mean "everything was cancelled" and removes nothing."""
+    if not seen:
+        return 0
+    stale = (db.query(InvestmentTransaction)
+             .filter(InvestmentTransaction.user_id == user_id,
+                     InvestmentTransaction.date >= start, InvestmentTransaction.date <= end,
+                     InvestmentTransaction.investment_transaction_id.notin_(seen)))
+    return stale.delete(synchronize_session=False)
+
+
 @celery_app.task(**RETRY)
 def sync_investment_transactions_task(user_id: str) -> int:
     """/investments/transactions/get for the last 24 months, paged by offset.
@@ -230,6 +249,7 @@ def sync_investment_transactions_task(user_id: str) -> int:
             token = decrypt(item.access_token_encrypted)
             end, start = date.today(), date.today() - timedelta(days=INVESTMENT_HISTORY_DAYS)
             offset, total, stored = 0, None, 0
+            seen: set[str] = set()
             while total is None or offset < total:
                 resp = plaid_service.client.investments_transactions_get(
                     plaid_service.build_investment_txn_request(token, start, end, offset=offset))
@@ -244,15 +264,20 @@ def sync_investment_transactions_task(user_id: str) -> int:
                         date=t["date"], amount=t["amount"], type=str(t.get("type") or ""), subtype=subtype,
                         is_dividend=subtype in DIVIDEND_SUBTYPES, quantity=t.get("quantity"), price=t.get("price"),
                         fees=t.get("fees")))
+                    seen.add(t["investment_transaction_id"])
                     stored += 1
                 total = resp["total_investment_transactions"]
                 offset += len(txns)
                 if not txns:
                     break
+            complete = total is not None and offset >= total     # every page arrived
+            dropped = _drop_unreported(db, user_id, start, end, seen) if complete else 0
+            if dropped:
+                log.info("removed %d investment transaction(s) Plaid no longer reports for %s", dropped, user_id)
             _replace_holdings(db, user_id, plaid_service.client.investments_holdings_get(
                 plaid_service.build_holdings_request(token)))
             item.status, item.last_synced_at = "active", _now()
-            if item.last_error != "PENDING_EXPIRATION":      # that warning lasts until the user reconnects
+            if item.last_error not in USER_PROMPTS:          # those last until the user acts in Link
                 item.last_error = None
             db.commit()
             return stored
