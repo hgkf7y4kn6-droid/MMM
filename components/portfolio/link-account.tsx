@@ -2,10 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Platform, Pressable, Text, View } from "react-native";
 
 import { api } from "@/lib/api";
+import { confirm } from "@/lib/confirm";
 import { formatDate } from "@/lib/format";
 
 const PLAID_SCRIPT = "https://cdn.plaid.com/link/v2/stable/link-initialize.js";
 const OAUTH_TOKEN_KEY = "kaventafi.plaid.link_token";
+const OAUTH_MODE_KEY = "kaventafi.plaid.link_mode";
+
+/** new: link an institution (replaces any current link). update: repair the current link in place. */
+type LinkMode = "new" | "update";
 
 type PlaidHandler = { open: () => void; destroy: () => void };
 type PlaidGlobal = {
@@ -36,21 +41,25 @@ function loadPlaid(): Promise<PlaidGlobal> {
 
 /** sessionStorage can be unavailable (private mode); linking then just can't resume after an OAuth redirect. */
 const stash = {
-  get: () => {
+  get: (): { token: string; mode: LinkMode } | null => {
     try {
-      return window.sessionStorage.getItem(OAUTH_TOKEN_KEY);
+      const token = window.sessionStorage.getItem(OAUTH_TOKEN_KEY);
+      const mode = window.sessionStorage.getItem(OAUTH_MODE_KEY) === "update" ? "update" : "new";
+      return token ? { token, mode } : null;
     } catch {
       return null;
     }
   },
-  set: (v: string) => {
+  set: (token: string, mode: LinkMode) => {
     try {
-      window.sessionStorage.setItem(OAUTH_TOKEN_KEY, v);
+      window.sessionStorage.setItem(OAUTH_TOKEN_KEY, token);
+      window.sessionStorage.setItem(OAUTH_MODE_KEY, mode);
     } catch {}
   },
   clear: () => {
     try {
       window.sessionStorage.removeItem(OAUTH_TOKEN_KEY);
+      window.sessionStorage.removeItem(OAUTH_MODE_KEY);
     } catch {}
   },
 };
@@ -74,21 +83,28 @@ export default function LinkAccount({ onChanged }: { onChanged: () => void }) {
   useEffect(refresh, [refresh]);
 
   const open = useCallback(
-    async (resumeToken?: string) => {
+    async (mode: LinkMode, resumeToken?: string) => {
       setBusy(true);
       setMessage(null);
       try {
         const Plaid = await loadPlaid();
-        const token = resumeToken ?? (await api.plaidLinkToken()).link_token;
-        stash.set(token);
+        const token = resumeToken ?? (await api.plaidLinkToken(mode)).link_token;
+        stash.set(token, mode);
         const handler = Plaid.create({
           token,
           receivedRedirectUri: resumeToken ? window.location.href : undefined,
           onSuccess: async (publicToken) => {
             try {
-              await api.plaidExchange(publicToken);
+              // Update mode repairs the existing link: there is no new token to exchange,
+              // and the imported history is kept.
+              if (mode === "update") await api.plaidReconnected();
+              else await api.plaidExchange(publicToken);
               stash.clear();
-              setMessage("Connected. Your investment history is being imported; it can take a minute.");
+              setMessage(
+                mode === "update"
+                  ? "Reconnected. Your history is intact; new activity appears within a minute."
+                  : "Connected. Your investment history is being imported; it can take a minute.",
+              );
               refresh();
               onChanged();
             } catch (e) {
@@ -116,8 +132,8 @@ export default function LinkAccount({ onChanged }: { onChanged: () => void }) {
   // Back from a bank's own sign-in page (OAuth): resume the same Link session.
   useEffect(() => {
     if (!web || !window.location.search.includes("oauth_state_id")) return;
-    const token = stash.get();
-    if (token) open(token);
+    const saved = stash.get();
+    if (saved) open(saved.mode, saved.token);
   }, [web, open]);
 
   const sync = async () => {
@@ -134,7 +150,29 @@ export default function LinkAccount({ onChanged }: { onChanged: () => void }) {
     }
   };
 
+  // Connecting a different institution replaces the current link and its imported history
+  // (two institutions' histories are never mixed into one portfolio), so ask first.
+  const connectDifferent = async () => {
+    const ok = await confirm(
+      "Replace your connected account?",
+      "Connecting a different brokerage disconnects the current one and removes the history imported from it.",
+      "Replace",
+    );
+    if (ok) open("new");
+  };
+
   if (status && !status.configured) return null; // the server has no Plaid credentials: nothing to offer
+
+  const repairable = status?.linked && status.status !== "revoked";
+  const prompt = repairable
+    ? status?.needs_reconnect
+      ? "Reconnect"
+      : status?.expiring_soon
+        ? "Renew connection"
+        : status?.new_accounts_available
+          ? "Add new accounts"
+          : null
+    : null;
 
   const stale = status?.linked && status.last_synced_at ? `Last updated ${formatDate(status.last_synced_at)}.` : null;
   return (
@@ -151,7 +189,10 @@ export default function LinkAccount({ onChanged }: { onChanged: () => void }) {
       ) : status?.linked ? (
         <Text className="card-caption">
           Connected. {stale ?? "Waiting for the first import."}
-          {status.expiring_soon ? " Your connection expires soon; reconnect to avoid a gap." : ""}
+          {status.expiring_soon ? " Your connection expires soon; renew it to avoid a gap." : ""}
+          {status.new_accounts_available && !status.expiring_soon
+            ? " You have new accounts at this brokerage that you can add."
+            : ""}
         </Text>
       ) : (
         <Text className="card-caption">
@@ -166,15 +207,26 @@ export default function LinkAccount({ onChanged }: { onChanged: () => void }) {
       ) : null}
       {web ? (
         <View className="mt-3 flex-row flex-wrap gap-2">
+          {prompt ? (
+            <Pressable
+              className="btn-outline"
+              onPress={() => open("update")}
+              disabled={busy}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: busy }}
+            >
+              <Text className="btn-outline-text">{prompt}</Text>
+            </Pressable>
+          ) : null}
           <Pressable
             className="btn-outline"
-            onPress={() => open()}
+            onPress={status?.linked && status.status !== "revoked" ? connectDifferent : () => open("new")}
             disabled={busy}
             accessibilityRole="button"
             accessibilityState={{ disabled: busy }}
           >
             <Text className="btn-outline-text">
-              {status?.needs_reconnect ? "Reconnect" : status?.linked ? "Connect a different account" : "Connect account"}
+              {status?.status === "revoked" ? "Connect again" : status?.linked ? "Connect a different account" : "Connect account"}
             </Text>
           </Pressable>
           {status?.linked && !status.needs_reconnect ? (

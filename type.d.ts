@@ -379,6 +379,7 @@ declare global {
     status: "none" | "active" | "login_required" | "revoked" | "error";
     needs_reconnect: boolean;
     expiring_soon?: boolean;
+    new_accounts_available?: boolean;
     last_synced_at: string | null;
     configured: boolean;
   };

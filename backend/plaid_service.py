@@ -69,6 +69,31 @@ def build_link_token_request(user_id: str) -> LinkTokenCreateRequest:
     )
 
 
+def build_update_link_token_request(user_id: str, access_token: str,
+                                    account_selection: bool = False) -> LinkTokenCreateRequest:
+    """Link in update mode for an existing Item: the user signs in again (expired login,
+    pending expiration) or picks newly opened accounts, and the same Item -- same item_id,
+    same access token, same synced history -- keeps working. Plaid's update mode takes no
+    products, and its success needs no token exchange."""
+    from plaid.model.link_token_create_request_update import LinkTokenCreateRequestUpdate
+
+    extra = {}
+    if os.environ.get("PLAID_WEBHOOK_URL"):
+        extra["webhook"] = os.environ["PLAID_WEBHOOK_URL"]
+    if os.environ.get("PLAID_REDIRECT_URI"):
+        extra["redirect_uri"] = os.environ["PLAID_REDIRECT_URI"]
+    if account_selection:
+        extra["update"] = LinkTokenCreateRequestUpdate(account_selection_enabled=True)
+    return LinkTokenCreateRequest(
+        access_token=access_token,
+        client_name="KaventaFi",
+        country_codes=[CountryCode("US")],
+        language="en",
+        user=LinkTokenCreateRequestUser(client_user_id=user_id),
+        **extra,
+    )
+
+
 def build_exchange_request(public_token: str) -> ItemPublicTokenExchangeRequest:
     return ItemPublicTokenExchangeRequest(public_token=public_token)
 

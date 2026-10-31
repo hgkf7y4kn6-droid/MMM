@@ -101,7 +101,10 @@ export const api = {
     request<IncomeAnalysis>(`/api/portfolio/income?source=${source}&target=${target}`),
   plaidStatus: () => request<PlaidStatus>("/api/plaid/status"),
   plaidSync: () => request<{ status: string }>("/api/plaid/sync", { method: "POST" }),
-  plaidLinkToken: () => request<{ link_token: string }>("/api/plaid/create-link-token", { method: "POST" }),
+  /** "new" links an institution; "update" repairs the existing link and keeps its history. */
+  plaidLinkToken: (mode: "new" | "update" = "new") =>
+    request<{ link_token: string }>(`/api/plaid/create-link-token?mode=${mode}`, { method: "POST" }),
+  plaidReconnected: () => request<{ status: string }>("/api/plaid/reconnected", { method: "POST" }),
   plaidExchange: (publicToken: string) =>
     request<{ status: string }>("/api/plaid/exchange-public-token", {
       method: "POST",

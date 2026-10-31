@@ -19,6 +19,7 @@ import os
 import logging
 import time
 from datetime import date, timedelta
+from typing import Literal
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -133,14 +134,50 @@ def test_db_connection(db: Session = Depends(get_db)):
 # ------------------------------------------------------------------
 
 @app.post("/api/plaid/create-link-token")
-async def create_link_token(user_id: str | None = None, user: User = Depends(current_user)):
+async def create_link_token(user_id: str | None = None, mode: Literal["new", "update"] = "new",
+                            db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """mode=new links an institution (and replaces any existing link). mode=update repairs the
+    existing link in place -- an expired login, a pending expiration, or newly opened
+    accounts -- keeping its item and its synced history. A link the user revoked at the bank
+    can't be repaired; it needs mode=new."""
+    caller = _caller(user_id, user)
+    plaid_client = _plaid()
+    if mode == "update":
+        item = db.query(PlaidItem).filter(PlaidItem.user_id == caller).first()
+        if item is None:
+            raise HTTPException(status_code=404, detail="No linked account to reconnect.")
+        if item.status == "revoked":
+            raise HTTPException(status_code=409, detail={
+                "code": "relink_required",
+                "message": "Access to this account was removed at your bank, so it has to be connected again."})
+        request = plaid_service.build_update_link_token_request(
+            caller, decrypt(item.access_token_encrypted),
+            account_selection=item.last_error == "NEW_ACCOUNTS_AVAILABLE")
+    else:
+        request = plaid_service.build_link_token_request(caller)
     try:
-        request = plaid_service.build_link_token_request(_caller(user_id, user))
-        response = await run_in_threadpool(_plaid().link_token_create, request)
-        return {"link_token": response["link_token"]}
+        response = await run_in_threadpool(plaid_client.link_token_create, request)
+        return {"link_token": response["link_token"], "mode": mode}
     except plaid.ApiException as e:
-        log.warning("link_token_create failed: %s", e)
+        log.warning("link_token_create (%s) failed: %s", mode, e)
         raise HTTPException(status_code=400, detail="Could not create link token.")
+
+
+@app.post("/api/plaid/reconnected")
+async def plaid_reconnected(db: Session = Depends(get_db), user: User = Depends(current_user)):
+    """Called after Link update mode succeeds. Update mode issues no new token to exchange:
+    the existing item works again, so clear the error and refresh. (Plaid's LOGIN_REPAIRED
+    webhook does the same; this makes the app current without waiting for it.)"""
+    item = db.query(PlaidItem).filter(PlaidItem.user_id == user.id).first()
+    if item is None:
+        raise HTTPException(status_code=404, detail="No linked account.")
+    if item.status == "revoked":
+        raise HTTPException(status_code=409, detail="Access was removed; connect the account again.")
+    item.status, item.last_error, item.last_attempt_at = "active", None, None
+    db.commit()
+    for task in (sync_accounts_task, sync_user_transactions_task, sync_investment_transactions_task):
+        enqueue(task, user.id)
+    return {"status": "queued"}
 
 
 @app.post("/api/plaid/exchange-public-token")
@@ -260,8 +297,17 @@ async def plaid_webhook(
         elif webhook_code == "LOGIN_REPAIRED":
             item.status, item.last_error = "active", None
             enqueue(sync_investment_transactions_task, item.user_id)
+        elif webhook_code == "NEW_ACCOUNTS_AVAILABLE":
+            # The user opened an account Plaid can share; they choose it in Link update mode.
+            # An expiry warning is the more urgent prompt, so it isn't overwritten.
+            if item.last_error != "PENDING_EXPIRATION":
+                item.last_error = "NEW_ACCOUNTS_AVAILABLE"
         db.commit()
         log.warning("Plaid item webhook %s for user %s -> %s", webhook_code, item.user_id, item.status)
+    elif webhook_type == "HOLDINGS" and webhook_code == "DEFAULT_UPDATE":
+        # Positions changed (a trade settled, a transfer arrived). The investment sync
+        # replaces the holdings snapshot together with the transactions.
+        enqueue(sync_investment_transactions_task, item.user_id)
 
     return {"status": "received"}
 
@@ -277,6 +323,7 @@ async def plaid_status(db: Session = Depends(get_db), user: User = Depends(curre
     resync_if_stale(db, item)
     return {"linked": True, "status": item.status, "needs_reconnect": item.status in ("login_required", "revoked"),
             "expiring_soon": item.last_error == "PENDING_EXPIRATION",
+            "new_accounts_available": item.last_error == "NEW_ACCOUNTS_AVAILABLE",
             "last_synced_at": item.last_synced_at.isoformat() if item.last_synced_at else None,
             "configured": plaid_service.client is not None}
 
@@ -326,13 +373,26 @@ async def list_transactions(
         q = q.filter(Transaction.date >= start_date)
     if end_date:
         q = q.filter(Transaction.date <= end_date)
-    rows = q.order_by(Transaction.date.desc()).limit(min(limit, 1000)).all()
+    rows = q.order_by(Transaction.date.desc()).limit(min(1000, max(limit, 1))).all()
     return [{
         "transaction_id": t.transaction_id, "account_id": t.account_id, "date": str(t.date),
         "amount": t.amount, "merchant_name": t.merchant_name,
         "category_primary": t.category_primary, "category_detailed": t.category_detailed,
         "city": t.city, "region": t.region, "pending": t.pending,
+        "is_transfer": is_internal_movement(t.category_primary, t.category_detailed),
     } for t in rows]
+
+
+# Plaid personal-finance categories for money moving between accounts rather than being
+# spent or earned. Counting these as spending or income double-counts (checking -> brokerage
+# looks like an expense; paying the credit card counts every purchase twice), so consumers
+# should leave them out of spending and income totals.
+_TRANSFER_PRIMARY = {"TRANSFER_IN", "TRANSFER_OUT"}
+_TRANSFER_DETAILED = {"LOAN_PAYMENTS_CREDIT_CARD_PAYMENT"}
+
+
+def is_internal_movement(primary: str | None, detailed: str | None) -> bool:
+    return (primary or "").upper() in _TRANSFER_PRIMARY or (detailed or "").upper() in _TRANSFER_DETAILED
 
 
 @app.get("/api/dividends/confirmed/{user_id}")

@@ -68,7 +68,7 @@ export default function Portfolio() {
             {o ? (
               <>
                 <View className="stat-grid mt-3">
-                  <StatCard label="Market value" value={formatMoneyCompact(o.total_value)} sub={o.complete ? null : "Some prices unavailable"} />
+                  <StatCard label="Market value" value={formatMoneyCompact(o.total_value)} sub={o.complete ? "Before taxes on gains" : "Some prices unavailable"} />
                   <StatCard label="Estimated annual income" value={formatMoney(o.estimated_annual_income)} sub={`Yield ${formatPct(o.estimated_yield, { digits: 2 })}`} />
                 </View>
                 <View className="tbl-head mt-4">

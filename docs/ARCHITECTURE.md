@@ -132,3 +132,27 @@ Brand references are in `docs/brand`: `brand-board.jpg`, `logo-lockup.jpg` and `
   in browsers and `hero-3d.tsx` through expo-gl on iOS and Android. It loads on demand (its own 900 kB chunk on
   the web) and falls back to the logo if WebGL is unavailable. The native renderer needs Expo Go or a
   development build and has not been run on a device yet.
+
+## Aggregation integrity
+
+Bank and brokerage data arrives through Plaid, and most user-visible failures in finance apps come from that
+layer. How KaventaFi handles each one:
+
+| Failure | Handling | Where |
+|---|---|---|
+| Expired login, MFA re-prompt, pending expiration | The item is marked (`login_required`, `PENDING_EXPIRATION`) and the app offers **Reconnect** / **Renew connection**, which opens Plaid Link in **update mode** on the existing item. No new item is created, nothing is re-imported and no history is lost. `POST /api/plaid/reconnected` clears the error and refreshes. | `main.create_link_token(mode=update)`, `plaid_reconnected`, `components/portfolio/link-account.tsx` |
+| Access revoked at the bank | Can't be repaired; the app offers **Connect again** (a new link). | `create_link_token` → 409 `relink_required` |
+| New accounts opened at the brokerage | `ITEM: NEW_ACCOUNTS_AVAILABLE` is surfaced as **Add new accounts**, which opens update mode with account selection. | webhook handler, `plaid_status.new_accounts_available` |
+| Positions changed between transaction updates | `HOLDINGS: DEFAULT_UPDATE` queues an investment sync, which replaces the holdings snapshot together with the transactions. | webhook handler |
+| Cancelled or corrected trades | After a **complete** fetch, stored trades inside the fetched 24-month window that Plaid no longer reports are removed, so they aren't counted twice. Older history, incomplete fetches and empty responses remove nothing. | `tasks._drop_unreported` |
+| Pending vs posted card transactions | `/transactions/sync` removals delete the pending row when the posted one arrives. | `tasks.sync_user_transactions_task` |
+| Transfers read as spending | Bank transactions carry `is_transfer` (Plaid `TRANSFER_IN`/`TRANSFER_OUT`, credit-card payments) so any spending or income total can leave them out. | `main.is_internal_movement` |
+| Contributions distorting returns | Performance is time-weighted with deposits, withdrawals and transfers removed as external flows; MWR is reported alongside. | `analytics/portfolio.py` |
+| "Phantom wealth" | Portfolio value is labelled *before taxes on gains*; the app reports market value, not net worth, and doesn't net out tax or liabilities it can't see. | `app/portfolio.tsx` |
+
+Deliberately **not** built: a combined budgeting-and-investing dashboard. Recurring bills (Subscriptions) and
+long-term investing (Portfolio, Research) stay on separate screens because they're checked at different
+frequencies for different reasons. One linked institution per user remains a known limitation.
+
+Residual risk: a trade that appears in holdings before its transaction posts can briefly be read as an opening
+balance at the start of the history; the next sync corrects it.
