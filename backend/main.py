@@ -38,7 +38,10 @@ from database import engine, Base, get_db, lock_down_tables
 from models import PlaidItem, Account, Holding, Transaction, InvestmentTransaction
 from crypto import decrypt, encrypt
 from auth import User, current_user, is_admin, require_self, sign_in_required
+from entitlements import Entitlement, entitlement, require_feature
 import api_account
+import api_holdings
+import api_imports
 import api_portfolio
 import api_stocks
 import api_subscriptions
@@ -91,6 +94,13 @@ app.include_router(api_stocks.router)
 app.include_router(api_portfolio.router)
 app.include_router(api_account.router)
 app.include_router(api_subscriptions.router)
+app.include_router(api_holdings.router)
+app.include_router(api_imports.router)
+
+# Linking accounts through Plaid is Pro: automatic sync replaces the manual entry Free uses
+# (receipt and statement imports, hand-entered holdings). Every user-initiated Plaid action
+# checks it; webhooks don't (they come from Plaid, not the user).
+_linking = require_feature("account_linking")
 
 
 def _plaid():
@@ -135,7 +145,8 @@ def test_db_connection(db: Session = Depends(get_db)):
 
 @app.post("/api/plaid/create-link-token")
 async def create_link_token(user_id: str | None = None, mode: Literal["new", "update"] = "new",
-                            db: Session = Depends(get_db), user: User = Depends(current_user)):
+                            db: Session = Depends(get_db), user: User = Depends(current_user),
+                            _: Entitlement = Depends(_linking)):
     """mode=new links an institution (and replaces any existing link). mode=update repairs the
     existing link in place -- an expired login, a pending expiration, or newly opened
     accounts -- keeping its item and its synced history. A link the user revoked at the bank
@@ -164,7 +175,8 @@ async def create_link_token(user_id: str | None = None, mode: Literal["new", "up
 
 
 @app.post("/api/plaid/reconnected")
-async def plaid_reconnected(db: Session = Depends(get_db), user: User = Depends(current_user)):
+async def plaid_reconnected(db: Session = Depends(get_db), user: User = Depends(current_user),
+                            _: Entitlement = Depends(_linking)):
     """Called after Link update mode succeeds. Update mode issues no new token to exchange:
     the existing item works again, so clear the error and refresh. (Plaid's LOGIN_REPAIRED
     webhook does the same; this makes the app current without waiting for it.)"""
@@ -182,7 +194,7 @@ async def plaid_reconnected(db: Session = Depends(get_db), user: User = Depends(
 
 @app.post("/api/plaid/exchange-public-token")
 async def exchange_public_token(payload: PublicTokenExchangeRequest, db: Session = Depends(get_db),
-                                user: User = Depends(current_user)):
+                                user: User = Depends(current_user), _: Entitlement = Depends(_linking)):
     user_id = _caller(payload.user_id, user)
     try:
         req = plaid_service.build_exchange_request(payload.public_token)
@@ -313,23 +325,28 @@ async def plaid_webhook(
 
 
 @app.get("/api/plaid/status")
-async def plaid_status(db: Session = Depends(get_db), user: User = Depends(current_user)):
+async def plaid_status(db: Session = Depends(get_db), user: User = Depends(current_user),
+                       ent: Entitlement = Depends(entitlement)):
     """Is the caller's linked account healthy, and when did its data last update?
-    `needs_reconnect` is true when only the user can fix it (expired login, revoked access)."""
+    `needs_reconnect` is true when only the user can fix it (expired login, revoked access).
+    `allowed` is false on Free: linking is Pro (the app shows the upgrade path instead)."""
+    allowed = ent.allows("account_linking")
     item = db.query(PlaidItem).filter(PlaidItem.user_id == user.id).first()
     if item is None:
         return {"linked": False, "status": "none", "needs_reconnect": False, "last_synced_at": None,
-                "configured": plaid_service.client is not None}
-    resync_if_stale(db, item)
+                "configured": plaid_service.client is not None, "allowed": allowed}
+    if allowed:
+        resync_if_stale(db, item)     # a lapsed Pro account's link isn't refreshed
     return {"linked": True, "status": item.status, "needs_reconnect": item.status in ("login_required", "revoked"),
             "expiring_soon": item.last_error == "PENDING_EXPIRATION",
             "new_accounts_available": item.last_error == "NEW_ACCOUNTS_AVAILABLE",
             "last_synced_at": item.last_synced_at.isoformat() if item.last_synced_at else None,
-            "configured": plaid_service.client is not None}
+            "configured": plaid_service.client is not None, "allowed": allowed}
 
 
 @app.post("/api/plaid/sync")
-async def plaid_sync_now(db: Session = Depends(get_db), user: User = Depends(current_user)):
+async def plaid_sync_now(db: Session = Depends(get_db), user: User = Depends(current_user),
+                         _: Entitlement = Depends(_linking)):
     """Refresh now (the app's "Sync" button). Idempotent: syncs are upserts by Plaid's ids."""
     item = db.query(PlaidItem).filter(PlaidItem.user_id == user.id).first()
     if item is None:

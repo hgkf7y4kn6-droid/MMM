@@ -18,13 +18,13 @@ const WIDE = 900;
 const PILLARS: { icon: IconName; title: string; text: string }[] = [
   { icon: "eye", title: "See clearly", text: "Every subscription and renewal in one place, with monthly and yearly totals and what's due next." },
   { icon: "analytics", title: "Make smarter choices", text: "Dividend history, payout safety and growth, laid out against the numbers so you can judge a company yourself." },
-  { icon: "trending-up", title: "Grow confidently", text: "Link your brokerage and see your return and dividend income measured against the S&P 500." },
+  { icon: "trending-up", title: "Grow confidently", text: "Enter your holdings, or link your brokerage with Pro, and see your return and dividend income measured against the S&P 500." },
   { icon: "sunny", title: "Live brighter", text: "You stay in control: export or delete your data any time, and we can't move your money." },
 ];
 
 const STEPS = [
   { n: "1", title: "Create a free account", text: "An email and a username. Nothing else is needed to start tracking." },
-  { n: "2", title: "Add what you pay and own", text: "Enter your subscriptions, and link a brokerage on the web when you're ready." },
+  { n: "2", title: "Add what you pay and own", text: "Snap a receipt or upload a statement to find your subscriptions, and enter the shares you own. No bank login needed." },
   { n: "3", title: "See it clearly", text: "Totals, trends and benchmarks, each labelled with where the data came from." },
 ];
 
@@ -165,7 +165,7 @@ export default function Welcome() {
                     <Cta label="Sign in" href="/sign-in" variant="ghost" />
                   </View>
                   <Text className="mt-5 font-sans text-xs text-white/60">
-                    Free to start · Read-only brokerage linking · We can&apos;t move your money
+                    Free to start · No bank login needed · We can&apos;t move your money
                   </Text>
                 </Reveal>
               </View>
@@ -275,7 +275,7 @@ export default function Welcome() {
                 Start with a clear view of your money
               </Text>
               <Text className="mt-3 max-w-[480px] text-center font-sans text-sm leading-6 text-white/80">
-                Free to start. KaventaFi Pro adds deeper portfolio analytics and company fundamentals when you want them.
+                Free to start. KaventaFi Pro links your bank and brokerage so everything updates on its own, and adds deeper portfolio analytics and company fundamentals.
               </Text>
               <View className="mt-7 flex-row flex-wrap justify-center gap-3">
                 <Cta label="Create free account" href="/sign-up" />

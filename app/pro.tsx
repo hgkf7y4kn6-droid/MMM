@@ -24,6 +24,8 @@ const STATUS_COPY: Record<string, string> = {
 };
 
 const PRO_LIST: ProFeature[] = [
+  "account_linking",
+  "auto_detect_subscriptions",
   "fcf_vs_benchmark",
   "roic",
   "dividend_vs_benchmark",
@@ -65,10 +67,15 @@ export default function Pro() {
         <BackLink />
         <Text className="pro-kicker">KaventaFi Pro</Text>
         <Text className="screen-title" accessibilityRole="header">
-          {isPro ? "You have Pro" : "Research that compounds"}
+          {isPro ? "You have Pro" : "Stop typing it in"}
         </Text>
         {feature && PRO_FEATURE_COPY[feature] ? (
           <Text className="screen-subtitle">{PRO_FEATURE_COPY[feature].title} is part of Pro.</Text>
+        ) : !isPro ? (
+          <Text className="screen-subtitle">
+            Link your accounts and KaventaFi keeps your subscriptions, holdings and dividends current on its own, with
+            deeper research on top.
+          </Text>
         ) : null}
 
         <View className="card section-gap">
@@ -89,8 +96,9 @@ export default function Pro() {
             </View>
           ))}
           <Text className="card-caption mt-4">
-            Free always includes the stock analysis matrix, dividend history, your holdings and income overview, and
-            exporting or deleting your data.
+            Free always includes the stock analysis matrix, dividend history, entering your holdings, cost basis and
+            dividends by hand, finding subscriptions in receipts and statements you upload, and exporting or deleting
+            your data.
           </Text>
         </View>
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, Float, Boolean, Date, Integer
+from sqlalchemy import Column, String, Text, DateTime, Float, Boolean, Date, Integer, LargeBinary
 from sqlalchemy.sql import func
 from database import Base
 
@@ -182,3 +182,63 @@ class BillingEvent(Base):
     outcome = Column(String, nullable=False)                   # applied | ignored | stale
     received_at = Column(DateTime(timezone=True), server_default=func.now())
     attempts = Column(Integer, default=1)
+
+
+class ManualHolding(Base):
+    """A lot of shares the user entered by hand (Free: no account linking needed).
+    Several lots of one symbol are allowed -- each keeps its own cost basis and date.
+    `cost_basis` is the total paid for the lot, fees included; null when unknown.
+    Without `acquired_on` the lot enters the ledger as an opening balance."""
+    __tablename__ = "manual_holdings"
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, index=True, nullable=False)
+    symbol = Column(String, nullable=False)
+    shares = Column(Float, nullable=False)
+    cost_basis = Column(Float, nullable=True)
+    acquired_on = Column(Date, nullable=True)
+    account_label = Column(String, nullable=True)       # "Roth IRA", "Fidelity taxable" -- the user's own label
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ManualDividend(Base):
+    """A dividend payment the user entered by hand. `reinvested` marks a DRIP:
+    the cash bought more shares, which the user records as a lot."""
+    __tablename__ = "manual_dividends"
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, index=True, nullable=False)
+    symbol = Column(String, nullable=False)
+    paid_on = Column(Date, nullable=False)
+    amount = Column(Float, nullable=False)
+    reinvested = Column(Boolean, nullable=False, default=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class ImportJob(Base):
+    """A receipt photo, statement PDF/image or CSV the user uploaded to find
+    subscriptions in, processed by a background job (imports.py).
+
+    The uploaded file is kept only until it has been read: `file_data` is
+    cleared as soon as processing finishes, successfully or not. What's kept
+    is the list of detected subscriptions (`candidates`, JSON) for the user to
+    review, never the document itself."""
+    __tablename__ = "import_jobs"
+
+    id = Column(String, primary_key=True)
+    user_id = Column(String, index=True, nullable=False)
+    source = Column(String, nullable=False)                 # receipt | statement | csv | linked
+    filename = Column(String, nullable=True)
+    media_type = Column(String, nullable=True)
+    file_data = Column(LargeBinary, nullable=True)
+    # queued | processing | ready | failed | applied
+    status = Column(String, nullable=False, default="queued")
+    error = Column(String, nullable=True)
+    transactions_found = Column(Integer, nullable=True)
+    candidates = Column(Text, nullable=True)                # JSON list (imports.Candidate)
+    notes = Column(Text, nullable=True)                     # JSON list of strings
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    finished_at = Column(DateTime(timezone=True), nullable=True)

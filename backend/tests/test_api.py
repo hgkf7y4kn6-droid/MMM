@@ -61,9 +61,22 @@ def test_linked_portfolio_is_scoped_to_the_caller():
                                  date=date(2024, 1, 2), amount=1000, type="buy", subtype="buy", quantity=10, price=100))
     db.commit()
     db.close()
+    for u in ("alice", "bob"):                    # linked accounts are Pro
+        set_sub(u, "active", 20)
     r = client_as("alice").get("/api/portfolio/overview?source=linked")
     assert r.status_code == 404 and r.json()["detail"]["code"] == "no_portfolio"
     assert client_as("bob").get("/api/portfolio/overview?source=linked").status_code == 200
+
+
+def test_linked_accounts_are_pro():
+    c = client_as("free-user")
+    r = c.get("/api/portfolio/overview?source=linked")
+    assert r.status_code == 402 and r.json()["detail"]["feature"] == "account_linking"
+    for path in ("/api/plaid/create-link-token", "/api/plaid/sync", "/api/plaid/reconnected", "/api/imports/linked"):
+        assert c.post(path).status_code == 402, path
+    assert c.post("/api/plaid/exchange-public-token", json={"public_token": "x"}).status_code == 402
+    status = c.get("/api/plaid/status").json()
+    assert status["allowed"] is False and status["linked"] is False
 
 
 # ---------------------------------------------------------- free vs pro

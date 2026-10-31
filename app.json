@@ -67,7 +67,15 @@
       ],
       "@clerk/expo",
       "expo-secure-store",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "KaventaFi uses your photos so you can pick receipts to find subscriptions in.",
+          "cameraPermission": "KaventaFi uses the camera so you can photograph receipts to find subscriptions in.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

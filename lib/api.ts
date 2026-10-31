@@ -42,7 +42,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
       ...init,
       headers: {
         Accept: "application/json",
-        ...(init.body ? { "Content-Type": "application/json" } : {}),
+        // FormData sets its own multipart Content-Type (with the boundary).
+        ...(typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...init.headers,
       },
@@ -130,6 +131,39 @@ export const api = {
   updateSubscription: (id: string, body: SubscriptionInput) =>
     request<Subscription>(`/api/subscriptions/${enc(id)}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteSubscription: (id: string) => request<null>(`/api/subscriptions/${enc(id)}`, { method: "DELETE" }),
+
+  imports: () => request<ImportsResponse>("/api/imports"),
+  importFile: (file: PickedFile, source: "receipt" | "statement") =>
+    request<ImportJob>("/api/imports", { method: "POST", body: uploadBody(file, { source }) }),
+  /** Pro: find subscriptions in linked bank transactions. */
+  importLinked: () => request<ImportJob>("/api/imports/linked", { method: "POST" }),
+  importJob: (id: string) => request<ImportJob>(`/api/imports/${enc(id)}`),
+  applyImport: (id: string, items: { candidate_id: string; subscription: SubscriptionInput }[]) =>
+    request<{ added: number; import: ImportJob }>(`/api/imports/${enc(id)}/apply`, {
+      method: "POST",
+      body: JSON.stringify({ items }),
+    }),
+  deleteImport: (id: string) => request<null>(`/api/imports/${enc(id)}`, { method: "DELETE" }),
+
+  holdings: () => request<HoldingsResponse>("/api/holdings"),
+  addLot: (body: HoldingLotInput) => request<HoldingLot>("/api/holdings/lots", { method: "POST", body: JSON.stringify(body) }),
+  updateLot: (id: string, body: HoldingLotInput) =>
+    request<HoldingLot>(`/api/holdings/lots/${enc(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteLot: (id: string) => request<null>(`/api/holdings/lots/${enc(id)}`, { method: "DELETE" }),
+  addDividend: (body: DividendInput) =>
+    request<DividendEntry>("/api/holdings/dividends", { method: "POST", body: JSON.stringify(body) }),
+  updateDividend: (id: string, body: DividendInput) =>
+    request<DividendEntry>(`/api/holdings/dividends/${enc(id)}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteDividend: (id: string) => request<null>(`/api/holdings/dividends/${enc(id)}`, { method: "DELETE" }),
 };
 
-export type PortfolioSource = "linked" | "demo";
+export type PortfolioSource = "manual" | "linked" | "demo";
+
+/** Multipart body for an upload. Browsers send the File itself; iOS and Android send a { uri, name, type } part. */
+function uploadBody(file: PickedFile, fields: Record<string, string>) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(fields)) form.append(k, v);
+  if (file.file) form.append("file", file.file, file.name);
+  else form.append("file", { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
+  return form;
+}

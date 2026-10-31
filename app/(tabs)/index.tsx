@@ -12,6 +12,7 @@ import StatusView from "@/components/status-view";
 import SubscriptionCard from "@/components/subscription-card";
 import UpcomingSubscriptionCard from "@/components/upcoming-subscription-card";
 import { icons } from "@/constants/icons";
+import { openImports } from "@/lib/imports";
 import { addSubscription, editSubscription, useSubscriptions } from "@/lib/subscriptions";
 import { useThemeColors } from "@/lib/theme";
 import { formatCurrency } from "@/lib/utils";
@@ -30,10 +31,14 @@ function EmptyState() {
       <Icon name={icons.wallet} className="empty-card-icon" />
       <Text className="empty-card-title">Track your first subscription</Text>
       <Text className="empty-card-text">
-        Add the services you pay for and we&apos;ll total them up and show you what renews next.
+        Snap a receipt or upload a statement and we&apos;ll find what bills you on repeat, total it up and show you
+        what renews next.
       </Text>
-      <Pressable className="btn mt-5 self-stretch" onPress={addSubscription} accessibilityRole="button">
-        <Text className="btn-text">Add a subscription</Text>
+      <Pressable className="btn mt-5 self-stretch" onPress={openImports} accessibilityRole="button">
+        <Text className="btn-text">Find my subscriptions</Text>
+      </Pressable>
+      <Pressable className="btn-outline mt-3 self-stretch" onPress={addSubscription} accessibilityRole="button">
+        <Text className="btn-outline-text">Add one by hand</Text>
       </Pressable>
     </View>
   );
