@@ -1,7 +1,7 @@
 # KaventaFi
 
 Track every subscription, research dividend growth stocks, and measure your portfolio against the S&P 500.
-Live at **https://mmm.richesdigitalventures.com**.
+Live at **https://kaventafi.richesdigitalventures.com**.
 
 | Part | What it is |
 |---|---|
