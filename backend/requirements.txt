@@ -11,3 +11,4 @@ plaid-python==46.0.0
 python-dateutil>=2.9
 anthropic==2.3.0
 python-multipart==0.0.33
+pypdfium2==5.14.0

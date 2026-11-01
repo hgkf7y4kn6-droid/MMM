@@ -130,7 +130,7 @@ export default function Imports() {
             />
           </View>
           {!readsPhotos ? (
-            <Text className="card-caption">Photos and PDFs can&apos;t be read on this server yet; CSV exports work.</Text>
+            <Text className="card-caption">Photos can&apos;t be read on this server yet. PDF statements downloaded from your bank and CSV exports work.</Text>
           ) : null}
         </View>
 
@@ -141,7 +141,7 @@ export default function Imports() {
         ) : null}
 
         <Text className="disclaimer">
-          Files are read by our AI document reader and deleted as soon as they&apos;ve been read. We keep only the merchant
+          Files are read automatically and deleted as soon as they&apos;ve been read. We keep only the merchant
           names, dates and amounts needed to suggest subscriptions. Up to {list.data?.max_file_mb ?? 10} MB per file.
         </Text>
 
