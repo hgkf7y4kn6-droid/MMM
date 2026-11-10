@@ -7,7 +7,7 @@
 | API | `uvicorn main:app --host 0.0.0.0 --port $PORT` from `backend/` | Python 3.12+, `pip install -r requirements.txt` |
 | Worker (optional) | `celery -A tasks worker -B --loglevel=info` from `backend/` (`-B` adds the 6-hourly fallback sync) | Redis (`REDIS_URL`). Without `REDIS_URL` the API runs syncs itself in a background thread, and refreshes a stale linked account when the portfolio is opened, so no paid worker is required to start. |
 | Database | Supabase Postgres (`DATABASE_URL`) | Tables are created and locked down at startup |
-| Document reader | Claude, through the Anthropic API (`ANTHROPIC_API_KEY`) | Reads receipt photos and PDF statements for subscription detection. Without it, imports accept CSV only. Each photo or PDF is one model call; `IMPORT_DAILY_LIMIT` (default 20 per user per day, ×5 on Pro) caps spend. Uploads run on the worker, or in a background thread without one. |
+| Document reader | On the server (default), or Claude (`ANTHROPIC_API_KEY`) | Reads uploads for subscription detection; see [Document reader](#document-reader). Uploads run on the worker, or in a background thread without one. `IMPORT_DAILY_LIMIT` (default 20 per user per day, ×5 on Pro) caps the work. |
 | App | Expo / EAS builds; web via `npx expo export --platform web` | `EXPO_PUBLIC_API_URL` |
 
 ## Render
@@ -84,6 +84,31 @@ restart.
    security for each one, so Supabase's public REST API (reachable with the project's anon key) returns no
    rows. The API connects as the table owner, which RLS doesn't restrict. Don't add RLS policies for `anon`
    or `authenticated`: the app never reads the database directly.
+
+## Document reader
+
+`DOCUMENT_READER` picks the engine: `auto` (default: Claude when `ANTHROPIC_API_KEY` is set, else local),
+`claude`, or `local`.
+
+| Upload | Local, base install | Local + `requirements-ocr.txt` | Claude |
+|---|---|---|---|
+| CSV export | ✓ | ✓ | ✓ (parsed locally either way) |
+| PDF downloaded from the bank (has a text layer) | ✓ | ✓ | ✓ |
+| Scanned PDF | — | ✓ (first `OCR_MAX_PAGES`, default 10) | ✓ |
+| Receipt / statement photo | — | ✓ | ✓, best on crumpled or badly lit photos |
+
+Local OCR is EasyOCR on PyTorch (CPU). It keeps documents on the server and has no per-call cost, but it
+needs memory: measured with PyPI's GPU build of PyTorch, the process sits at about 1.3 GB once the models are
+loaded and peaks around 1.5-2 GB while reading a photo (about 5 s on 2 CPU threads). The CPU-only build
+`requirements-ocr.txt` installs should be smaller, but plan for **2 GB of RAM**: Render's free (512 MB) and
+Starter plans will run out of memory and restart the API on the first photo. To enable it on Render:
+
+1. Move the API to a plan with at least 2 GB (or run uploads on a worker that has it, with `REDIS_URL`).
+2. Build command: `cd backend && pip install -r requirements.txt -r requirements-ocr.txt && python -c "import easyocr; easyocr.Reader(['en'], gpu=False, model_storage_directory='models')"`
+   (the second part downloads the ~100 MB of model weights during the build instead of on the first photo).
+3. Set `OCR_MODEL_DIR=models` (relative to `backend/`) and optionally `OCR_THREADS` (default 2).
+
+`GET /api/imports` reports `reads_photos`, which the app uses to enable or disable the photo buttons.
 
 ## Database migrations
 

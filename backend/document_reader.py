@@ -4,7 +4,12 @@ Returns the charges on the document and anything it says about recurring
 billing, as `subscription_detect.Charge` / `Hint` objects. Detection itself
 (subscription_detect.detect) is deterministic and runs on what this returns.
 
-ANTHROPIC_API_KEY    enables photo and PDF imports; without it only CSV works
+Two engines, picked by DOCUMENT_READER (auto | claude | local; default auto):
+    claude   Claude through the Anthropic API (ANTHROPIC_API_KEY): best on messy photos
+    local    on this server (local_ocr.py): PDF text layers always; photos and scanned
+             PDFs with EasyOCR on PyTorch when requirements-ocr.txt is installed
+auto uses Claude when a key is set, else local.
+
 IMPORT_MODEL         default claude-opus-5-5
 
 The document is untrusted input: the system prompt tells the model to treat
@@ -40,7 +45,60 @@ class ReaderFailed(RuntimeError):
 
 
 def configured() -> bool:
+    """Claude is available (an API key is set)."""
     return bool(os.environ.get("ANTHROPIC_API_KEY"))
+
+
+def engine() -> str:
+    """claude | local -- which reader handles photos and PDFs."""
+    choice = (os.environ.get("DOCUMENT_READER") or "auto").strip().lower()
+    if choice == "claude" or (choice == "auto" and configured()):
+        return "claude"
+    return "local"
+
+
+def reads_photos() -> bool:
+    """Photos (and scanned PDFs) can be read: Claude is configured, or local OCR is installed."""
+    if engine() == "claude":
+        return configured()
+    import local_ocr
+    return local_ocr.ocr_installed()
+
+
+def read(data: bytes, media_type: str, source: str) -> tuple[list[Charge], list[Hint], str | None]:
+    """(charges, recurring hints, document type) from a photo or PDF, with whichever engine is set up.
+    Raises ReaderUnavailable when nothing can read it, ReaderFailed with a user-facing message otherwise."""
+    if engine() == "claude":
+        return read_with_claude(data, media_type, source)
+    return read_locally(data, media_type, source)
+
+
+def read_locally(data: bytes, media_type: str, source: str) -> tuple[list[Charge], list[Hint], str | None]:
+    import local_ocr
+    from text_extract import extract
+
+    try:
+        if media_type == PDF_TYPE:
+            lines, needs_ocr = local_ocr.pdf_lines(data)
+            if needs_ocr:
+                raise ReaderUnavailable("This PDF is a scan, and reading scans isn't set up on this server. "
+                                        "Download the statement from your bank's website (it has selectable text), "
+                                        "or upload a CSV export.")
+        elif media_type in IMAGE_TYPES:
+            if not local_ocr.ocr_installed():
+                raise ReaderUnavailable("Reading photos isn't set up on this server. Upload a PDF or CSV statement.")
+            lines = local_ocr.image_lines(data)
+        else:
+            raise ReaderFailed("That file type can't be read. Upload a JPEG, PNG, WebP or PDF.")
+    except (ReaderUnavailable, ReaderFailed):
+        raise
+    except Exception as exc:                     # a corrupt PDF or image, or an OCR crash
+        log.warning("local read failed: %s", exc)
+        raise ReaderFailed("We couldn't read that file. Try a clearer photo or a different PDF.") from exc
+    if not lines:
+        raise ReaderFailed("We couldn't find any text in that file. Try a clearer, well-lit photo.")
+    charges, hints = extract(lines, source)
+    return charges, hints, "receipt" if source == "receipt" else "statement"
 
 
 def model() -> str:
@@ -124,9 +182,8 @@ def _content_block(data: bytes, media_type: str) -> dict:
     raise ReaderFailed("That file type can't be read. Upload a JPEG, PNG, WebP or PDF.")
 
 
-def read(data: bytes, media_type: str, source: str) -> tuple[list[Charge], list[Hint], str | None]:
-    """(charges, recurring hints, document type) from a photo or PDF. Raises ReaderUnavailable
-    when no API key is set, ReaderFailed with a user-facing message otherwise."""
+def read_with_claude(data: bytes, media_type: str, source: str) -> tuple[list[Charge], list[Hint], str | None]:
+    """(charges, recurring hints, document type) from a photo or PDF, read by Claude."""
     if not configured():
         raise ReaderUnavailable("Reading photos and PDFs isn't set up on this server. Upload a CSV export instead.")
     import anthropic

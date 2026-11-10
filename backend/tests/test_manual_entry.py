@@ -177,7 +177,9 @@ def test_csv_import_end_to_end():
     assert bob.get("/api/imports").json()["imports"] == []
 
 
-def test_upload_rejects_unknown_and_heic_and_unconfigured_photos():
+def test_upload_rejects_unknown_and_heic_and_unconfigured_photos(monkeypatch):
+    import local_ocr
+    monkeypatch.setattr(local_ocr, "ocr_installed", lambda: False)      # no API key and no local OCR
     c = client_as("alice")
     assert c.post("/api/imports", files={"file": ("x.bin", b"\x00\x01\x02\x03" * 10, "application/octet-stream")}).status_code == 415
     heic = b"\x00\x00\x00\x18ftypheic" + b"\x00" * 32

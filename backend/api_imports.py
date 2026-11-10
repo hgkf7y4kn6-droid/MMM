@@ -158,7 +158,7 @@ def process(db: Session, job: ImportJob) -> None:
 async def list_imports(user: User = Depends(current_user), db: Session = Depends(get_db)):
     rows = (db.query(ImportJob).filter(ImportJob.user_id == user.id)
             .order_by(ImportJob.created_at.desc()).limit(20).all())
-    return {"imports": [_out(j) for j in rows], "reads_photos": document_reader.configured(),
+    return {"imports": [_out(j) for j in rows], "reads_photos": document_reader.reads_photos(),
             "max_file_mb": MAX_FILE_BYTES // (1024 * 1024)}
 
 
@@ -176,9 +176,10 @@ async def upload(file: UploadFile = File(...), source: Source = Form("statement"
                                                     "app (it converts to JPEG), or take a screenshot of it.")
     if kind is None:
         raise HTTPException(status_code=415, detail="Upload a photo (JPEG, PNG, WebP), a PDF, or a CSV export.")
-    if kind != "text/csv" and not document_reader.configured():
-        raise HTTPException(status_code=503, detail="Reading photos and PDFs isn't set up yet. "
-                                                    "Upload a CSV export from your bank instead.")
+    # PDFs with a text layer can always be read; photos need Claude or local OCR.
+    if kind.startswith("image/") and not document_reader.reads_photos():
+        raise HTTPException(status_code=503, detail="Reading photos isn't set up yet. "
+                                                    "Upload a PDF or CSV statement from your bank instead.")
     if kind.startswith("image/") and len(data) > MAX_IMAGE_BYTES:
         raise HTTPException(status_code=413, detail="That photo is over 5 MB. Try a lower-resolution photo.")
     since = datetime.now(timezone.utc) - timedelta(days=1)

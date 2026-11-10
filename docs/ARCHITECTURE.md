@@ -117,9 +117,10 @@ Free users never need to hand over bank credentials. They bring their own data:
 
 - **Receipts and statements** (`api_imports.py`). An upload is stored as an `ImportJob` and processed in the
   background (`tasks.process_import_task`; a thread when there's no worker). CSV is parsed locally
-  (`subscription_detect.parse_csv`). Photos and PDFs go to Claude (`document_reader.py`), which returns only dates,
-  merchant names, amounts and any recurring-billing wording, constrained to a JSON schema with no field for account
-  numbers. Detection (`subscription_detect.detect`) is deterministic: a merchant charged 2+ times at a weekly,
+  (`subscription_detect.parse_csv`). Photos and PDFs are read by `document_reader.py` with one of two engines:
+  locally (`local_ocr.py`: a PDF's text layer through pypdfium2, else EasyOCR on PyTorch, whose words are
+  regrouped into lines and parsed by `text_extract.py`), or by Claude, which returns only dates, merchant names,
+  amounts and any recurring-billing wording, constrained to a JSON schema with no field for account numbers. Detection (`subscription_detect.detect`) is deterministic: a merchant charged 2+ times at a weekly,
   monthly, quarterly or yearly interval for a similar amount; a document that says it renews; or a single charge
   from a well-known subscription merchant (low confidence). Matches against already-tracked subscriptions are
   flagged, not duplicated. The file bytes are cleared as soon as processing ends, success or failure; a job left

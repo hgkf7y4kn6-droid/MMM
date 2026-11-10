@@ -1,0 +1,10 @@
+# Local OCR for receipt photos and scanned PDF statements (local_ocr.py), on PyTorch.
+# Optional: without it, photos need ANTHROPIC_API_KEY, and PDFs with a text layer and CSVs
+# still work. Install on top of requirements.txt:
+#     pip install -r requirements.txt -r requirements-ocr.txt
+# The CPU-only PyTorch build (~200 MB) is used instead of PyPI's GPU build (several GB).
+# Needs about 1 GB of RAM while reading a photo; see docs/DEPLOYMENT.md.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch>=2.4,<3
+torchvision>=0.19,<1
+easyocr==1.7.2

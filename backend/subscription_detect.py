@@ -346,7 +346,7 @@ def detect(charges: list[Charge], hints: list[Hint] | None = None, existing: dic
     for c in charges:
         if c.amount <= 0:
             continue
-        k = normalize_merchant(c.merchant)
+        k = _group_key(c.merchant)
         if k:
             groups.setdefault(k, []).append(c)
 
@@ -400,7 +400,7 @@ def detect(charges: list[Charge], hints: list[Hint] | None = None, existing: dic
                 occurrences=len(cs), last_charged=last.day.isoformat(), charges=charge_list))
 
     for h in hints or []:
-        key = normalize_merchant(h.merchant) or _key(h.merchant)
+        key = _group_key(h.merchant) or _key(h.merchant)
         if not key:
             continue
         billing = h.billing if h.billing in STEP else None
@@ -431,6 +431,13 @@ def detect(charges: list[Charge], hints: list[Hint] | None = None, existing: dic
     rank = {"high": 0, "medium": 1, "low": 2}
     result = sorted(out.values(), key=lambda c: (c.already_tracked, rank[c.confidence], c.renewal_date, c.name))
     return result[:MAX_CANDIDATES]
+
+
+def _group_key(merchant: str) -> str:
+    """Charges from one merchant share a key. A well-known merchant is keyed by its name, so
+    statement variations and OCR noise ("NETFLIX.COM 866-579", "NETFLIX COM") still group."""
+    known = known_merchant(merchant)
+    return known[0].lower() if known else normalize_merchant(merchant)
 
 
 def _best_series(cs: list[Charge]) -> tuple[str, list[Charge]] | None:
