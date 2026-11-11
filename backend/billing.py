@@ -80,7 +80,8 @@ STRIPE_STATUS = {"active": "active", "trialing": "trialing", "past_due": "past_d
 
 def verify_stripe(payload: bytes, header: str | None, secret: str | None, now: float | None = None) -> dict:
     if not secret:
-        raise BillingNotConfigured("STRIPE_WEBHOOK_SECRET isn't set.")
+        log.error("STRIPE_WEBHOOK_SECRET isn't set")
+        raise BillingNotConfigured("Billing isn't available right now.")
     if not header:
         raise WebhookRejected("missing Stripe-Signature")
     parts = [p.split("=", 1) for p in header.split(",") if "=" in p]
@@ -123,7 +124,8 @@ def parse_stripe(event: dict) -> BillingUpdate:
 def stripe_checkout_url(user_id: str, customer_id: str | None, success_url: str, cancel_url: str) -> str:
     secret, price = os.environ.get("STRIPE_SECRET_KEY"), os.environ.get("STRIPE_PRICE_ID")
     if not secret or not price:
-        raise BillingNotConfigured("Checkout isn't configured (STRIPE_SECRET_KEY, STRIPE_PRICE_ID).")
+        log.error("checkout isn't configured (STRIPE_SECRET_KEY, STRIPE_PRICE_ID)")
+        raise BillingNotConfigured("Billing isn't available right now.")
     form = {"mode": "subscription", "line_items[0][price]": price, "line_items[0][quantity]": "1",
             "success_url": success_url, "cancel_url": cancel_url, "client_reference_id": user_id,
             "subscription_data[metadata][user_id]": user_id, "allow_promotion_codes": "true"}
@@ -138,7 +140,8 @@ def stripe_checkout_url(user_id: str, customer_id: str | None, success_url: str,
 def stripe_portal_url(customer_id: str, return_url: str) -> str:
     secret = os.environ.get("STRIPE_SECRET_KEY")
     if not secret:
-        raise BillingNotConfigured("Billing portal isn't configured (STRIPE_SECRET_KEY).")
+        log.error("billing portal isn't configured (STRIPE_SECRET_KEY)")
+        raise BillingNotConfigured("Billing isn't available right now.")
     resp = httpx.post(f"{STRIPE_API}/billing_portal/sessions", data={"customer": customer_id, "return_url": return_url},
                       auth=(secret, ""), timeout=20)
     resp.raise_for_status()
@@ -153,7 +156,8 @@ REVENUECAT_STATUS = {"INITIAL_PURCHASE": "active", "RENEWAL": "active", "UNCANCE
 
 def verify_revenuecat(authorization: str | None, secret: str | None) -> None:
     if not secret:
-        raise BillingNotConfigured("REVENUECAT_WEBHOOK_AUTH isn't set.")
+        log.error("REVENUECAT_WEBHOOK_AUTH isn't set")
+        raise BillingNotConfigured("Billing isn't available right now.")
     if not authorization or not hmac.compare_digest(authorization.encode(), secret.encode()):
         raise WebhookRejected("bad Authorization")
 

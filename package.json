@@ -59,7 +59,7 @@
     "@types/three": "^0.169.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "postcss": "^8.5.29",
+    "postcss": "^8.5.32",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.2"
@@ -67,6 +67,10 @@
   "private": true,
   "overrides": {
     "lightningcss": "1.30.1",
-    "@expo/metro-config": "~54.0.17"
+    "@expo/metro-config": "~54.0.17",
+    "node-forge": "^1.4.3",
+    "undici": "^6.29.1",
+    "decode-uri-component": "^0.5.1",
+    "postcss": "$postcss"
   }
 }
