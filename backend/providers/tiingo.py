@@ -13,6 +13,7 @@ None (shown as unavailable), never zero.
 """
 from __future__ import annotations
 
+import logging
 import os
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
@@ -23,6 +24,8 @@ from analytics.models import (BenchmarkAggregates, CompanyFundamentals, FiscalYe
                               Quote)
 from providers.base import ProviderUnavailable, SymbolNotFound
 from providers.cache import cached
+
+log = logging.getLogger("tiingo")
 
 BASE = "https://api.tiingo.com"
 LICENSE_NOTE = ("Market data from Tiingo, subject to Tiingo's terms. Redistribution to end users requires the "
@@ -61,7 +64,8 @@ NET_CODES = {
 def _key() -> str:
     key = os.environ.get("TIINGO_API_KEY")
     if not key:
-        raise ProviderUnavailable("Market data isn't configured (TIINGO_API_KEY).")
+        log.error("TIINGO_API_KEY isn't set")
+        raise ProviderUnavailable("Market data isn't available right now.")
     return key
 
 
